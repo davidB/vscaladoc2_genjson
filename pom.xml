@@ -1,0 +1,319 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>5</version>
+  </parent>
+  
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>net.alchim31.vscaladoc2</groupId>
+  <artifactId>vscaladoc2_genjson</artifactId>
+  <version>0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+  
+  <name>VScaladoc2 Json Generator</name>
+  <url>http://github.com/davidB/${project.artifactId}</url>
+  <description>Generate api from scala source in json format</description>
+  <inceptionYear>2010</inceptionYear>
+  <organization>
+    <name>Alchim31</name>
+    <url>http://alchim31.net/</url>
+  </organization>
+
+  <licenses>
+    <license>
+      <name>the Apache License, ASL Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <scm>
+    <connection>scm:git:git@github.com:davidB/${project.artifactId}.git</connection>
+    <developerConnection>scm:git:git@github.com:davidB/${project.artifactId}.git</developerConnection>
+    <url>git@github.com:davidB/${project.artifactId}.git/</url>
+  </scm>
+
+  <issueManagement>
+    <system>github</system>
+    <url>http://github.com/davidB/${project.artifactId}/issues#issue/</url>
+  </issueManagement>
+
+  <!--ciManagement>
+    <system>hudson</system>
+    <url>http://scala-tools.org/hudson/job/${project.artifactId}</url>
+  </ciManagement-->
+
+  <distributionManagement>
+    <repository>
+      <id>scala-tools.org</id>
+      <url>http://nexus-direct.scala-tools.org/content/repositories/releases</url>
+    </repository>
+    <snapshotRepository>
+      <id>scala-tools.org</id>
+      <url>http://nexus-direct.scala-tools.org/content/repositories/snapshots</url>
+      <uniqueVersion>false</uniqueVersion>
+    </snapshotRepository>
+    <site>
+      <id>scala-tools.org</id>
+      <url>dav:http://nexus-direct.scala-tools.org/content/sites/mvnsites-snapshots/${project.artifactId}</url>
+    </site>
+  </distributionManagement>
+
+  <developers>
+    <developer>
+      <name>David Bernard</name>
+      <email>david.bernard.31 @ gmail.com</email>
+      <timezone>+1</timezone>
+    </developer>
+  </developers>
+
+  <properties>
+    <mainClass>net_alchim31_vscaladoc2_genjson.Main</mainClass>
+    <scala.version>2.8.0</scala.version>
+    <maven.compiler.source>1.6</maven.compiler.source>
+    <maven.compiler.target>1.6</maven.compiler.target>
+    <encoding>UTF-8</encoding>
+  </properties>
+
+<!--
+  <repositories>
+    <repository>
+      <id>scala-tools.org</id>
+      <name>Scala-Tools Maven2 Repository</name>
+      <url>http://scala-tools.org/repo-releases</url>
+    </repository>
+    <repository>
+      <id>oss.sonatype.org/github-releases</id>
+      <url>http://oss.sonatype.org/content/repositories/github-releases/</url>
+    </repository>
+    <repository>
+      <id>repo-embedded</id>
+      <name>project repo</name>
+      <url>file://${basedir}/repo-embedded</url>
+    </repository>
+  </repositories>
+-->
+<!-- 
+  <pluginRepositories>
+    <pluginRepository>
+      <id>mc-release</id>
+      <name>Local Maven repository of releases</name>
+      <url>http://mc-repo.googlecode.com/svn/maven2/releases</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </pluginRepository>
+  </pluginRepositories>
+-->
+  <dependencies>
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-library</artifactId>
+      <version>${scala.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-compiler</artifactId>
+      <version>${scala.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-core-asl</artifactId>
+      <version>1.6.0</version>
+    </dependency>
+    <!--
+      <dependency> <groupId>org.eclipse.mylyn.wikitext</groupId> <artifactId>wikitext</artifactId> <version>0.9.4.I20090220-1600-e3x</version> </dependency> <dependency>
+      <groupId>org.eclipse.mylyn.wikitext</groupId> <artifactId>wikitext.textile</artifactId> <version>0.9.4.I20090220-1600-e3x</version> </dependency> <dependency>
+      <groupId>org.eclipse.mylyn.wikitext</groupId> <artifactId>wikitext.confluence</artifactId> <version>0.9.4.I20090220-1600-e3x</version> </dependency> <dependency>
+      <groupId>org.eclipse.mylyn.wikitext</groupId> <artifactId>wikitext.mediawiki</artifactId> <version>0.9.4.I20090220-1600-e3x</version> </dependency> <dependency> <groupId>org.markdownj</groupId>
+      <artifactId>markdownj</artifactId> <version>0.3.0-1.0.2b4</version> </dependency>
+    -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.8.1</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <sourceDirectory>src/main/scala</sourceDirectory>
+    <testSourceDirectory>src/test/scala</testSourceDirectory>
+    <plugins>
+      <plugin>
+        <groupId>org.scala-tools</groupId>
+        <artifactId>maven-scala-plugin</artifactId>
+        <version>2.14.1</version>
+        <executions>
+          <execution>
+            <id>cmain</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <args>
+                <arg>-make:transitive</arg>
+                <arg>-dependencyfile</arg>
+                <arg>${project.build.directory}/.main_scala_dependencies</arg>
+              </args>
+            </configuration>
+          </execution>
+          <execution>
+            <id>ctest</id>
+            <goals>
+              <goal>testCompile</goal>
+            </goals>
+            <configuration>
+              <args>
+                <arg>-make:transitive</arg>
+                <arg>-dependencyfile</arg>
+                <arg>${project.build.directory}/.test_scala_dependencies</arg>
+              </args>
+            </configuration>
+          </execution>
+        </executions>
+        <configuration>
+          <jvmArgs>
+            <jvmArg>-Xms64m</jvmArg>
+            <jvmArg>-Xmx1024m</jvmArg>
+          </jvmArgs>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-site-plugin</artifactId>
+        <version>3.0-beta-2</version>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-docck-plugin</artifactId>
+        <version>1.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.mycila.maven-license-plugin</groupId>
+        <artifactId>maven-license-plugin</artifactId>
+        <version>1.8.0</version>
+        <configuration>
+          <header>src/header.txt</header>
+          <includes>
+            <include>src/main/**</include>
+            <include>src/test/**</include>
+          </includes>
+          <properties>
+            <year>${project.inceptionYear}</year>
+            <owner>${project.organization.name}</owner>
+            <owner_url>${project.organization.url}</owner_url>
+            <url>${project.url}</url>
+          </properties>          
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.3.1</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <mainClass>${mainClass}</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-project-info-reports-plugin</artifactId>
+        <version>2.1.2</version>
+        <inherited>false</inherited>
+      </plugin>
+      <plugin>
+        <groupId>org.scala-tools</groupId>
+        <artifactId>maven-scala-plugin</artifactId>
+        <configuration>
+          <vscaladocVersion>${project.version}</vscaladocVersion>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>taglist-maven-plugin</artifactId>
+        <version>2.4</version>
+        <configuration>
+          <tags>
+            <tag>TODO</tag>
+            <tag>FIXME</tag>
+            <tag>@todo</tag>
+            <tag>@deprecated</tag>
+          </tags>
+        </configuration>
+      </plugin>
+    </plugins>
+  </reporting>
+
+  <profiles>
+    <profile>
+      <id>demoTest</id>
+      <build>
+        <defaultGoal>antrun:run</defaultGoal>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-antrun-plugin</artifactId>
+            <configuration>
+              <tasks>
+                <path id="runtime.classpath">
+                  <path refid="maven.test.classpath" />
+                  <pathelement path="${local_classpath}" />
+                </path>
+                <property name="runtime_classpath" refid="maven.test.classpath" />
+                <echo message="runtime classpath: ${runtime_classpath}" />
+                <delete dir="${basedir}/src/it/demo-1/target/site/scaladocs" />
+                <echo file="${project.build.directory}/demo1.json" append="false"><![CDATA[
+                  {
+                  "artifactId" : "vscaladoc2_demoprj",
+                  "version" : "0.1-SNAPSHOT",
+                  "apidocdir" : "${basedir}/../vscaladoc2_demoprj/target/apidoc",
+                  "dependencies" : [
+                    ["${settings.localRepository}/org/scala-lang/scala-library/${scala.version}/scala-library-${scala.version}.jar", "scala-library", "${scala.version}"]
+                  ],
+                  "sources" : [
+                    ["${basedir}/../vscaladoc2_demoprj/src/main/scala"]
+                  ]
+                  }
+                  ]]>                
+                </echo>
+                <exec executable="${java.home}/bin/java" failonerror="true">
+                  <arg value="-cp" />
+                  <arg value="${runtime_classpath}" />
+                  <arg value="-Xmx1024m" />
+                  <!-- 
+                  <arg value="-Xdebug"/>
+                  <arg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/>
+                  -->
+                  <arg value="${mainClass}" />
+                  <arg value="${project.build.directory}/demo1.json" />
+                </exec>
+              </tasks>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

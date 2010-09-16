@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<project name="${project.name}">
+  <bannerLeft>
+    <name>${project.name}</name>
+    <href>${project.url}</href>
+  </bannerLeft>
+  <bannerRight>
+    <name>Scala-lang</name>
+    <href>http://www.scala-lang.org/</href>
+    <src>http://www.scala-lang.org/images/scala_logo.png</src>
+  </bannerRight>
+  <publishDate position="left" format="yyyy-MM-dd HH:mm" />
+  <version position="left"/>
+  <skin>
+    <groupId>org.scala-tools.skins</groupId>
+    <artifactId>scala-skin-simple</artifactId>
+    <version>1.0</version>
+  </skin>
+  <poweredBy>
+    <logo name="Build with Maven 2" href="http://maven.apache.org" img="images/logos/maven-feather.png" />
+  </poweredBy>
+
+  <body>
+    <links>
+      <item name="wiki" href="http://github.com/davidB/vscaladoc2_genjson/wiki"/>
+      <item name="issue tracker" href="http://github.com/davidB/vscaladoc2_genjson/issues"/>
+      <item name="scala-tools" href="http://scala-tools.org/"/>
+      <item name="alchim31" href="http://alchim31.net/"/>
+    </links>
+    <menu ref="reports" />
+    <menu ref="modules" />
+  </body>
+</project>
