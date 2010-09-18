@@ -12,13 +12,12 @@ VScaladoc2 is currently split in **3** independents (+/-) projects :
   * run over Scaladoc2 (scala 2.8.0+)
 * [vscaladoc2_demoprj](http://github.com/davidB/vscaladoc_demoprj) :
   a sample project use to test, demo the json generator and the renderers. fork it, add cases, (push back) ...
-  source available at 
 * [vscaladoc2_www]((http://github.com/davidB/vscaladoc_www) :
   a website to render api : from json format -> more user friendly (html)
-  currenlty, it doesn't host api but retreive them from there origin http server
-  it provides a better support for api integration/aggregation (eg multi-modules api, cross lib references,...)
-  it's a work in progress with lot of Bug to fixe, and TODO
-  it'll support "pluggable" renderer (specification to define)
+  *  currenlty, it doesn't host api but retreive them from there origin http server
+  * it provides a better support for api integration/aggregation (eg multi-modules api, cross lib references,...)
+  * it's a work in progress with lot of Bug to fixe, and TODO
+  * it'll support "pluggable" renderer (specification to define)
   
 Currently, it's not possible to generate/store local html files (see below)
 
