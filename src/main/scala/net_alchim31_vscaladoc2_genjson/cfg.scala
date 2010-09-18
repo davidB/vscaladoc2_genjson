@@ -18,6 +18,8 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import scala.collection.SortedSet
+import scala.collection.generic.SortedSetFactory
 import java.io.FileInputStream
 import java.util.jar.JarInputStream
 import org.codehaus.jackson.JsonParser
@@ -39,7 +41,7 @@ import scala.reflect.NameTransformer
 
 class Cfg {
   var artifactId = "undef"
-  var version = "0.0.1"
+  var version = "0.0.0"
   var description = ""
   var sources : List[Source] = Nil
   var dependencies : List[Dependency] = Nil
@@ -183,16 +185,16 @@ class Source(val dir : File) {
 }
 
 case class Dependency(file : File, artifactId : String, version : String) {
-  private lazy val _jarEntries : List[String] = {
+  private lazy val _jarEntries : SortedSet[String] = {
     val jarFile = new JarInputStream(new FileInputStream(file))
     try {
-      val b = new ListBuffer[String]()
+      val b = SortedSet.newBuilder[String]
       var jarEntry = jarFile.getNextJarEntry()
       while (jarEntry != null) {
           b += jarEntry.getName().replace('\\', '/')
           jarEntry = jarFile.getNextJarEntry()
       }
-      b.toList
+      b.result
     } finally {
       jarFile.close()
     }

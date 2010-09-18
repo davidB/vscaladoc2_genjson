@@ -121,12 +121,14 @@ class MyDocFactory(reporter : Reporter, settings : doc.Settings, cfg : Cfg) exte
       val modelFactory = (new model.ModelFactory(compiler, settings) with model.comment.CommentFactory)
       val docModel = modelFactory.makeModel
       println("... model contains " + modelFactory.templatesCount + " documentable top entity")
-      println("generating json into "+ cfg.apidocdir +"...")  
+      println("generating json into "+ cfg.apidocdir +"...")
+      val uoaHelper = new UriOfApiHelper(cfg)
+      val htmlHelper = new HtmlHelper(uoaHelper)
       //(new html.HtmlFactory(docModel)).generate
-      new JsonFactory(cfg, docModel).generate()
-      println("generating json into "+ cfg.apidocdir +"...")  
+      new JsonDocFactory(cfg, uoaHelper, htmlHelper).generate(docModel.rootPackage)
+      println("...DONE")  
     } else {
-        println("...failed")
+      println("...failed")
     }
   }
 }
