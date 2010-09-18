@@ -33,34 +33,13 @@
   <scm>
     <connection>scm:git:git@github.com:davidB/${project.artifactId}.git</connection>
     <developerConnection>scm:git:git@github.com:davidB/${project.artifactId}.git</developerConnection>
-    <url>git@github.com:davidB/${project.artifactId}.git/</url>
+    <url>git@github.com:davidB/${project.artifactId}.git</url>
   </scm>
 
   <issueManagement>
     <system>github</system>
     <url>http://github.com/davidB/${project.artifactId}/issues#issue/</url>
   </issueManagement>
-
-  <!--ciManagement>
-    <system>hudson</system>
-    <url>http://scala-tools.org/hudson/job/${project.artifactId}</url>
-  </ciManagement-->
-
-  <distributionManagement>
-    <repository>
-      <id>scala-tools.org</id>
-      <url>http://nexus-direct.scala-tools.org/content/repositories/releases</url>
-    </repository>
-    <snapshotRepository>
-      <id>scala-tools.org</id>
-      <url>http://nexus-direct.scala-tools.org/content/repositories/snapshots</url>
-      <uniqueVersion>false</uniqueVersion>
-    </snapshotRepository>
-    <site>
-      <id>scala-tools.org</id>
-      <url>dav:http://nexus-direct.scala-tools.org/content/sites/mvnsites-snapshots/${project.artifactId}</url>
-    </site>
-  </distributionManagement>
 
   <developers>
     <developer>
@@ -84,15 +63,6 @@
       <id>scala-tools.org</id>
       <name>Scala-Tools Maven2 Repository</name>
       <url>http://scala-tools.org/repo-releases</url>
-    </repository>
-    <repository>
-      <id>oss.sonatype.org/github-releases</id>
-      <url>http://oss.sonatype.org/content/repositories/github-releases/</url>
-    </repository>
-    <repository>
-      <id>repo-embedded</id>
-      <name>project repo</name>
-      <url>file://${basedir}/repo-embedded</url>
     </repository>
   </repositories>
 -->
