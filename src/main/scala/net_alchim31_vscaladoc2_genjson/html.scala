@@ -20,7 +20,7 @@ package net_alchim31_vscaladoc2_genjson
 
 import scala.xml.NodeSeq
 // copy from scala.tools.nsc.doc.html.HtmlPage
-class HtmlHelper(val uaoHelper : UriOfApiHelper) {
+class HtmlHelper(val uoaHelper : UriOfApiHelper) {
   import scala.tools.nsc.doc.model.comment._    
   
   /**
@@ -76,7 +76,7 @@ class HtmlHelper(val uaoHelper : UriOfApiHelper) {
      case Superscript(in) => <sup>{ inlineToHtml(in) }</sup>
      case Subscript(in) => <sub>{ inlineToHtml(in) }</sub>
      case Link(raw, title) => <a href={ raw }>{ inlineToHtml(title) }</a>
-     case EntityLink(entity) => <a href={"api:" + entity.qualifiedName } title={entity.qualifiedName}>{ entity.name }</a> //TODO provide a correct href (UriOfApi)
+     case EntityLink(entity) => <a href={"api:" + uoaHelper.toRefPath(entity) } title={entity.qualifiedName}>{ entity.name }</a>
      case Monospace(text) => <code>{ xml.Text(text) }</code>
      case Text(text) => xml.Text(text)
      case Summary(in) => inlineToHtml(in)
