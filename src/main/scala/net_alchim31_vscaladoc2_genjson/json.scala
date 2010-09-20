@@ -18,6 +18,13 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import scala.tools.nsc.doc.model.ProtectedInTemplate
+import scala.tools.nsc.doc.model.Public
+import scala.tools.nsc.doc.model.ProtectedInInstance
+import scala.tools.nsc.doc.model.PrivateInTemplate
+import scala.tools.nsc.doc.model.PrivateInInstance
+import scala.tools.nsc.doc.model.Visibility
+import scala.tools.nsc.doc.model.TypeParam
 import scala.xml.NodeSeq
 import scala.tools.nsc.doc.model.MemberEntity
 import scala.tools.nsc.doc.model.TypeEntity
@@ -42,6 +49,8 @@ import java.io.{ File => JFile }
  */
 class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelper : HtmlHelper) {
 
+  type SplitStringWithRef = List[(String, Option[String])]
+  
   private val _encoding : String = "UTF-8"
 
   /*universe.settings.outdir.value*/
@@ -50,7 +59,7 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
   private val _jacksonFactory = new org.codehaus.jackson.JsonFactory()
 
   /**
-   * @param model The model to generate in the form of a sequence of packages.
+   * @param rootPackage The model to generate in the form of a sequence of packages.
    */
   def generate(rootPackage : DocTemplateEntity) : Unit = {
     import scala.collection.mutable
@@ -66,16 +75,6 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
     writeArtifactVersionInfo()
     writeTemplate(rootPackage, mutable.HashSet.empty[DocTemplateEntity])
   }
-
-  //  def findPath[T <: Entity](v : T) = findPath(v, v.qualifiedName) 
-  //
-  //  def findPath[T <: Entity](v : T, qualifiedName : String) : List[String] = {
-  //    v match {
-  //        case x : TemplateEntity => List(x.qualifiedName, qualifiedName.substring(x.qualifiedName.length + 1))
-  //        case _ => findPackageName(v.inTemplate, qualifiedName)
-  //    }
-  //  }
-
 
   def writeArtifactVersionInfo() {
     val f = new JFile(_siteRoot, cfg.artifactId + "/" + cfg.version + ".json")
@@ -140,20 +139,64 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
     jg.writeStringField("qualifiedName", v.qualifiedName)
   }
   
-  def writeTypeEntity(fieldName : Option[String], v : TypeEntity, jg : JsonGenerator) {
-      fieldName.foreach{ x => jg.writeFieldName(x) }
-      jg.writeStartObject()
-      jg.writeStringField("name", v.name)
-      jg.writeArrayFieldStart("ref")
+  def makeStringWithRef(v : TypeEntity) : SplitStringWithRef = {
+	  var lastFrag = 0
+	  val b = new ListBuffer[(String, Option[String])]()
       for ((start, (entity, end)) <- v.refEntity) {
+    	  if (start > lastFrag) {
+    	 	  b += Tuple2( v.name.substring(lastFrag, start), None )
+    	 	  lastFrag = start
+    	  }
+          b += Tuple2( v.name.substring(start, end), Some(uoaHelper.toRefPath(entity)) )
+          lastFrag = end
+      }
+	  b.toList
+  }
+
+  def writeSplitStringWithRef(fieldName : Option[String], v : SplitStringWithRef, jg : JsonGenerator) {
+      fieldName.foreach{ x => jg.writeFieldName(x) }
+      jg.writeStartArray()
+      for ((str, oRef) <- v) {
           jg.writeStartArray()
-          jg.writeString(uoaHelper.toRefPath(entity))
-          jg.writeNumber(start)
-          jg.writeNumber(end)
+          jg.writeString(str)
+          oRef.foreach { x => jg.writeString(x) }
           jg.writeEndArray()
       }
       jg.writeEndArray()
-      jg.writeEndObject()
+  }
+  
+  def tparamsToSplitStringWithRef(v : List[TypeParam]) : SplitStringWithRef = {
+    if (v.isEmpty) {
+    	Nil
+    } else {
+      def tparam0(tp: TypeParam): SplitStringWithRef =
+         (tp.variance + tp.name, None) +: boundsToSplitStringWithRef(tp.hi, tp.lo)
+	  def tparams0(tpss: List[TypeParam]) : SplitStringWithRef = (tpss: @unchecked) match {
+	    case tp :: Nil => tparam0(tp)
+	    case tp :: tps => tparam0(tp) ::: ((", ", None) +: tparams0(tps))
+	  }
+	  ("[", None) +: tparams0(v) :+ ("]", None)
+    }
+  }
+  
+  def boundsToSplitStringWithRef(hi: Option[TypeEntity], lo: Option[TypeEntity]): SplitStringWithRef = {
+	def bound0(bnd: Option[TypeEntity], pre: String): SplitStringWithRef = bnd match {
+	  case None => Nil
+	  case Some(tpe) => (pre, None) +: makeStringWithRef(tpe)
+	}
+	bound0(hi, "<:") ::: bound0(lo, ">:")
+  }
+  
+  def visibilityToSplitStringWithRef(mbr: MemberEntity) : SplitStringWithRef = {
+    mbr.visibility match {
+      case PrivateInInstance() => List(("private[this]", None))
+      case PrivateInTemplate(owner) if (owner == mbr.inTemplate) =>  List(("private", None))
+      case PrivateInTemplate(owner) => List(("private[", None), (owner.name, Some(uoaHelper.toRefPath(owner))), ("]", None))
+      case ProtectedInInstance() => List(("protected[this]", None))
+      case ProtectedInTemplate(owner) if (owner == mbr.inTemplate) => List(("protected", None))
+      case ProtectedInTemplate(owner) => List(("protected[", None), (owner.name, Some(uoaHelper.toRefPath(owner))), ("]", None))
+      case Public() => Nil
+    }
   }
   
   def writeMemberEntity(v : MemberEntity, jg : JsonGenerator) {
@@ -163,8 +206,8 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
     jg.writeStringField("flags", v.visibility.toString)
     v.deprecation.foreach { x => jg.writeStringField("deprecation", htmlHelper.bodyToHtml(x).toString) }
     writeFieldEntityList("inheritedFrom", v.inheritedFrom, jg)
-    jg.writeStringField("resultType", v.visibility.toString)
-    writeTypeEntity(Some("resultType"), v.resultType, jg)
+    writeSplitStringWithRef(Some("visilibility"), visibilityToSplitStringWithRef(v), jg)
+  	writeSplitStringWithRef(Some("resultType"), makeStringWithRef( v.resultType), jg)
   }
   
   def writeDocTemplateEntityData(v : DocTemplateEntity, jg : JsonGenerator) {
@@ -187,7 +230,7 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
     v.companion.foreach { v => jg.writeStringField("companion", uoaHelper.toRefPath(v)) }
     // signature
     
-    v.parentType.foreach { x => writeTypeEntity(Some("parentType"), x, jg) }
+    v.parentType.foreach { x => writeSplitStringWithRef(Some("parentType"), makeStringWithRef(x), jg) }
 //76    def linearization: List[(TemplateEntity, TypeEntity)]
 //77    def linearizationTemplates: List[TemplateEntity]
     jg.writeArrayFieldStart("linearization")
@@ -199,6 +242,7 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
 
   def writeTraitData(v : Trait, jg : JsonGenerator) {
     writeDocTemplateEntityData(v, jg)
+    writeSplitStringWithRef(Some("typeParams"), tparamsToSplitStringWithRef(v.typeParams), jg)
   }
 
   def writeClassData(v : Class, jg : JsonGenerator) {
