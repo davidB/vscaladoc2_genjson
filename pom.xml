@@ -9,7 +9,7 @@
   
   <groupId>net.alchim31.vscaladoc2</groupId>
   <artifactId>vscaladoc2_genjson</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.1</version>
   <packaging>jar</packaging>
   
   <name>VScaladoc2 Json Generator</name>
@@ -273,8 +273,8 @@
                   <arg value="${runtime_classpath}" />
                   <arg value="-Xmx1024m" />
                   <!-- 
-                  <arg value="-Xdebug"/>
-                  <arg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"/>
+                  <arg value="-Xdebug" />
+                  <arg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005" />
                   -->
                   <arg value="${mainClass}" />
                   <arg value="${project.build.directory}/demo1.json" />
