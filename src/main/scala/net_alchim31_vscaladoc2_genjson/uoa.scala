@@ -89,8 +89,7 @@ class UriOfApiHelper(val cfg: Cfg) {
 
         packageName = packageEntity.map(_.qualifiedName)
         typeName = typeEntity.map { t =>
-          t.qualifiedName.substring(packageName.map(_.length + 1).getOrElse(0)) +
-            (if (t.isObject) "$object" else "")
+          t.qualifiedName.substring(packageName.map(_.length + 1).getOrElse(0)) //+ if (t.isObject) "$object" else "")
         }
         memberName = typeEntity.flatMap { t =>
           (v.qualifiedName.length > t.qualifiedName.length) match {

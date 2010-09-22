@@ -18,6 +18,12 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import scala.tools.nsc.doc.model.ValueParam
+import scala.tools.nsc.doc.model.AbstractType
+import scala.tools.nsc.doc.model.AliasType
+import scala.tools.nsc.doc.model.Val
+import scala.tools.nsc.doc.model.Def
+import scala.tools.nsc.doc.model.Constructor
 import scala.tools.nsc.doc.model.ProtectedInTemplate
 import scala.tools.nsc.doc.model.Public
 import scala.tools.nsc.doc.model.ProtectedInInstance
@@ -64,16 +70,25 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
   def generate(rootPackage : DocTemplateEntity) : Unit = {
     import scala.collection.mutable
 
-    def writeTemplate(tpl : DocTemplateEntity, written : mutable.HashSet[DocTemplateEntity]) : Unit = {
-      if (!(written contains tpl)) {
-        write(tpl)
-        written += tpl
-        tpl.templates map (writeTemplate(_, written))
+    def writeMembers(uoa : UriOfApi, v : List[MemberEntity], written : mutable.HashSet[UriOfApi]) : Unit = {
+      if (!(written contains uoa)) {
+        write(uoa, v)
+        written += uoa
+        v match {
+        	case tpl : DocTemplateEntity =>{
+        		val groups = tpl.members.filter(_.inheritedFrom.isEmpty).filter(! _.isInstanceOf[Constructor]).groupBy(x => uoaHelper(x))
+        		for( (uoa, ms) <- groups) {
+        			writeMembers(uoa, ms, written)
+        		}
+        	}
+        	case _ =>()
+        }
+        
       }
     }
     println("generate to " + _siteRoot)
     writeArtifactVersionInfo()
-    writeTemplate(rootPackage, mutable.HashSet.empty[DocTemplateEntity])
+    writeMembers(uoaHelper(rootPackage), List(rootPackage), mutable.HashSet.empty[UriOfApi])
   }
 
   def writeArtifactVersionInfo() {
@@ -103,26 +118,47 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
     }
   }
   
-  def write[T <: DocTemplateEntity](v : T) {
-
-    val f = new JFile(_siteRoot, uoaHelper.toRefPath(v))
+  def write(uoa : UriOfApi, v : List[MemberEntity]) {
+    val f = new JFile(_siteRoot, uoaHelper.toRefPath(uoa))
     f.getParentFile.mkdirs()
     val jg = _jacksonFactory.createJsonGenerator(f, JsonEncoding.UTF8);
     jg.useDefaultPrettyPrinter() // enable indentation just to make debug/testing easier
+    jg.writeStringField("uoa", uoaHelper.toRefPath(uoa))
+    jg.writeArrayFieldStart("e")
     try {
-      jg.writeStartObject()
-      v match {
-        // Class is a Trait => case should be before
-        case v : Class => writeClassData(v, jg)
-        case v : Trait => writeTraitData(v, jg)
-        // Package is an Object => case should be before
-        case v : Package => writePackageData(v, jg)
-        case v : Object => writeObjectData(v, jg)
+      for( m <- v) {
+    	write(m, jg)  
       }
-      jg.writeEndObject()
     } finally {
+      jg.writeEndArray()
       jg.flush()
       jg.close()
+    }
+  }
+  
+  def write[T <: MemberEntity](v : T, jg : JsonGenerator) {
+    try {
+      jg.writeStartObject()
+      
+      val kind = v match {
+        // Class is a Trait => case should be before
+        case v : Class => writeClassData(v, jg) ; "class"
+        case v : Trait => writeTraitData(v, jg) ; "trait"
+        // Package is an Object => case should be before
+        case v : Package => writePackageData(v, jg) ; "package"
+        case v : Object => writeObjectData(v, jg) ; "object"
+        // Package is an Object => case should be before
+        case v : Constructor => throw new Exception("should not append here")
+        case v : Def => "def"
+        case v : Val => "val"
+        case v : AliasType => "aliasType"
+        case v : AbstractType => "abstractType"
+        case v => "undef_" + v.getClass
+      }
+      jg.writeStringField("kind", kind)        
+
+    } finally {  
+      jg.writeEndObject()
     }
   }
 
@@ -132,25 +168,6 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
        jg.writeString(uoaHelper.toRefPath(e)) 
     }
     jg.writeEndArray()
-  }
-
-  def writeEntityData(v : Entity, jg : JsonGenerator) {
-    jg.writeStringField("name", v.name)
-    jg.writeStringField("qualifiedName", v.qualifiedName)
-  }
-  
-  def makeStringWithRef(v : TypeEntity) : SplitStringWithRef = {
-	  var lastFrag = 0
-	  val b = new ListBuffer[(String, Option[String])]()
-      for ((start, (entity, end)) <- v.refEntity) {
-    	  if (start > lastFrag) {
-    	 	  b += Tuple2( v.name.substring(lastFrag, start), None )
-    	 	  lastFrag = start
-    	  }
-          b += Tuple2( v.name.substring(start, end), Some(uoaHelper.toRefPath(entity)) )
-          lastFrag = end
-      }
-	  b.toList
   }
 
   def writeSplitStringWithRef(fieldName : Option[String], v : SplitStringWithRef, jg : JsonGenerator) {
@@ -165,6 +182,20 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
       jg.writeEndArray()
   }
   
+  def tentityToSplitStringWithRef(v : TypeEntity) : SplitStringWithRef = {
+	  var lastFrag = 0
+	  val b = new ListBuffer[(String, Option[String])]()
+      for ((start, (entity, end)) <- v.refEntity) {
+    	  if (start > lastFrag) {
+    	 	  b += Tuple2( v.name.substring(lastFrag, start), None )
+    	 	  lastFrag = start
+    	  }
+          b += Tuple2( v.name.substring(start, end), Some(uoaHelper.toRefPath(entity)) )
+          lastFrag = end
+      }
+	  b.toList
+  }
+
   def tparamsToSplitStringWithRef(v : List[TypeParam]) : SplitStringWithRef = {
     if (v.isEmpty) {
     	Nil
@@ -182,7 +213,7 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
   def boundsToSplitStringWithRef(hi: Option[TypeEntity], lo: Option[TypeEntity]): SplitStringWithRef = {
 	def bound0(bnd: Option[TypeEntity], pre: String): SplitStringWithRef = bnd match {
 	  case None => Nil
-	  case Some(tpe) => (pre, None) +: makeStringWithRef(tpe)
+	  case Some(tpe) => (pre, None) +: tentityToSplitStringWithRef(tpe)
 	}
 	bound0(hi, "<:") ::: bound0(lo, ">:")
   }
@@ -198,8 +229,55 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
       case Public() => Nil
     }
   }
-  
-  def writeMemberEntity(v : MemberEntity, jg : JsonGenerator) {
+
+  def vparamsToSplitStringWithRef(v : List[List[ValueParam]]) : SplitStringWithRef = {
+	  v.map {params =>
+	   val l = params.foldLeft[SplitStringWithRef](Nil) { (r, param) =>
+	  	 var b : SplitStringWithRef = r :+ (",", None)
+	  	 if (param.isImplicit) b = b :+ ("implicit", None) 
+	  	 b = b ++ tentityToSplitStringWithRef(param.resultType)
+	  	 param.defaultValue match {
+	  		 case Some(s) => b = b :+ (s, None)
+	  		 case None => ()
+	  	 }
+	  	 b
+	   }
+	   ("(", None) +: l.tail :+ (")", None)
+	  }.flatten
+  }
+// TreeEntity since 2.8.1
+//  def defaultValueToSplitStringWithRef(defVal : TreeEntity) : SplitStringWithRef = {
+//	    var index = 0
+//	    val str = defVal.expression
+//    val length = str.length
+//	    var myXml : SplitStringWithRef  = (" =", None) :: Nil
+//    for( x <- defVal.refs) {
+//	      val from = x._1
+//      val to = x._2._2
+//	      if (index < from) {
+//	        myXml ++= (str.substring(index,from), None)
+//	        index = from
+//	      }
+//	     
+//      if (index == from) {           
+//        val member:Entity = x._2._1
+//        member match {
+//          case mbr: DocTemplateEntity =>
+//            myXml ++= (str.substring(from, to), Some(uoaHelper.toRefPath(mbr)))
+//          case mbr: MemberEntity => 
+//            myXml ++= (str.substring(from, to), Some(uoaHelper.toRefPath(mbr)))
+//          case _ => assert(false, "unexpected case in defaultValueToHtml")
+//        }
+//	        index = to
+//      }
+//    }
+//    if (index <= length-1) myXml ++= (str.substring(index, length ), None)
+//    myXml
+//  }
+
+  def writeMemberEntityData(v : MemberEntity, jg : JsonGenerator) {
+    jg.writeStringField("name", v.name)
+    jg.writeStringField("qualifiedName", v.qualifiedName)
     jg.writeStringField("definitionName", v.definitionName)
     jg.writeStringField("visibility", v.visibility.toString)
     v.comment.foreach { x => jg.writeStringField("description", htmlHelper.commentToHtml(x).toString) }
@@ -207,13 +285,11 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
     v.deprecation.foreach { x => jg.writeStringField("deprecation", htmlHelper.bodyToHtml(x).toString) }
     writeFieldEntityList("inheritedFrom", v.inheritedFrom, jg)
     writeSplitStringWithRef(Some("visilibility"), visibilityToSplitStringWithRef(v), jg)
-  	writeSplitStringWithRef(Some("resultType"), makeStringWithRef( v.resultType), jg)
+  	writeSplitStringWithRef(Some("resultType"), tentityToSplitStringWithRef( v.resultType), jg)
   }
   
   def writeDocTemplateEntityData(v : DocTemplateEntity, jg : JsonGenerator) {
-    writeEntityData(v, jg)  
-    jg.writeStringField("uoa", uoaHelper.toRefPath(v))
-    jg.writeStringField("kind", if (v.isTrait) "trait" else if (v.isClass) "class" else if (v.isObject) "object" else if (v.isPackage) "package" else "undef")
+    writeMemberEntityData(v, jg)  
     v.inSource.foreach { s => 
       jg.writeArrayFieldStart("sourceStartPoint")
       jg.writeString(s._1.path)
@@ -230,7 +306,7 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
     v.companion.foreach { v => jg.writeStringField("companion", uoaHelper.toRefPath(v)) }
     // signature
     
-    v.parentType.foreach { x => writeSplitStringWithRef(Some("parentType"), makeStringWithRef(x), jg) }
+    v.parentType.foreach { x => writeSplitStringWithRef(Some("parentType"), tentityToSplitStringWithRef(x), jg) }
 //76    def linearization: List[(TemplateEntity, TypeEntity)]
 //77    def linearizationTemplates: List[TemplateEntity]
     jg.writeArrayFieldStart("linearization")
@@ -247,9 +323,12 @@ class JsonDocFactory(val cfg : Cfg, val uoaHelper : UriOfApiHelper, val htmlHelp
 
   def writeClassData(v : Class, jg : JsonGenerator) {
     writeTraitData(v, jg)
-//def primaryConstructor: Option[Constructor]
-//95    def constructors: List[Constructor]
-//96    def valueParams: List[List[ValueParam]]    
+    jg.writeArrayFieldStart("constructors")
+    for( x <- v.constructors) {
+       writeMemberEntityData(x, jg)
+       writeSplitStringWithRef(Some("valueParams"), vparamsToSplitStringWithRef(v.valueParams), jg)
+    }
+    jg.writeEndArray()
   }
 
   def writeObjectData(v : Object, jg : JsonGenerator) {
