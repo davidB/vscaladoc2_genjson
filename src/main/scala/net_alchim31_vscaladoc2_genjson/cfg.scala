@@ -18,6 +18,7 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import net_alchim31_utils.FileSystemHelper
 import scala.collection.SortedSet
 import scala.collection.generic.SortedSetFactory
 import java.io.FileInputStream
@@ -28,7 +29,6 @@ import org.codehaus.jackson.JsonToken
 import scala.collection.mutable.ArrayBuffer
 import scala.tools.nsc.doc.DocFactory
 import java.io.File
-import net_alchim31_utils.Files
 import scala.tools.nsc.CompilerCommand
 import scala.tools.nsc.FatalError
 import scala.tools.nsc.reporters.{ Reporter, ConsoleReporter }
@@ -77,7 +77,7 @@ class Cfg {
   }
 }
 
-object Cfg {
+class CfgHelper(val fs : FileSystemHelper) {
   def apply(json : String) : Cfg = apply(new org.codehaus.jackson.JsonFactory().createJsonParser(json))
   def apply(json : File) : Cfg = apply(new org.codehaus.jackson.JsonFactory().createJsonParser(json))
 
@@ -135,7 +135,7 @@ object Cfg {
     while (jp.nextToken() != JsonToken.END_ARRAY) {
       val source = if (jp.getCurrentToken == JsonToken.START_ARRAY) {
         jp.nextToken
-        val source = new Source(new File(jp.getText))
+        val source = new Source(new File(jp.getText), fs)
         jp.nextToken
         if (jp.getCurrentToken() != JsonToken.END_ARRAY) {
           if (jp.getCurrentToken == JsonToken.START_ARRAY) {
@@ -159,7 +159,7 @@ object Cfg {
         while (jp.getCurrentToken() != JsonToken.END_ARRAY) { jp.nextToken() }
         source
       } else {
-        new Source(new File(jp.getText))
+        new Source(new File(jp.getText), fs)
       }
       l += source
     }
@@ -167,10 +167,10 @@ object Cfg {
   }
 }
 
-class Source(val dir : File) {
+class Source(val dir : File, val fs : FileSystemHelper) {
   var includes : List[String] = List("**/*.scala", "**/*.java")
   var excludes : List[String] = Nil
-  def files : Seq[File] = Files.findFiles(dir, includes, excludes)
+  def files : Seq[File] = fs.findFiles(dir, includes, excludes)
 
   /** 
    * search an existing file (ignore includes/excludes)

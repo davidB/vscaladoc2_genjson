@@ -18,6 +18,8 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import net_alchim31_utils.FileSystemHelper
+import net_alchim31_utils.FileSystemHelper
 import java.io.File
 import scala.tools.nsc.{doc, FatalError, CompilerCommand}
 import scala.tools.nsc.doc.{model, DocFactory}
@@ -33,12 +35,14 @@ object Main {
    *  that generates documentation from source files.
    */
 
-  val versionMsg : String = "VScaladoc2_genjson 0.1"
+  private val versionMsg : String = "VScaladoc2_genjson 0.1"
 
+  private lazy val _fs = new FileSystemHelper()
+  
   def main(args : Array[String]) {
     val jsonCfg = args(0)
     println(jsonCfg)
-    val reporter = process(Cfg(new File(jsonCfg)))
+    val reporter = process(new CfgHelper(_fs).apply(new File(jsonCfg)))
     //exit(if (reporter.hasErrors) 1 else 0)
   }
 
@@ -89,7 +93,7 @@ object Main {
     else if (docSettings.showPhases.value)
       reporter.warning(null, "Phases are restricted when using Scaladoc")
     else try {
-      val docProcessor = new MyDocFactory(reporter, docSettings, cfg)
+      val docProcessor = new MyDocFactory(reporter, docSettings, cfg, _fs)
       docProcessor.document(command.files)
 
     } catch {
@@ -106,7 +110,7 @@ object Main {
 
 }
 
-class MyDocFactory(reporter : Reporter, settings : doc.Settings, cfg : Cfg) extends DocFactory(reporter, settings) {
+class MyDocFactory(reporter : Reporter, settings : doc.Settings, cfg : Cfg, val fs : FileSystemHelper) extends DocFactory(reporter, settings) {
 
   /**
    * Creates a scaladoc site for all symbols defined in this call's `files`, as well as those defined in `files` of
@@ -125,7 +129,7 @@ class MyDocFactory(reporter : Reporter, settings : doc.Settings, cfg : Cfg) exte
       val uoaHelper = new UriOfApiHelper(cfg)
       val htmlHelper = new HtmlHelper(uoaHelper)
       //(new html.HtmlFactory(docModel)).generate
-      new JsonDocFactory(cfg, uoaHelper, htmlHelper).generate(docModel.rootPackage)
+      new JsonDocFactory(cfg, uoaHelper, htmlHelper).generate(docModel.rootPackage, fs)
       println("...DONE")  
     } else {
       println("...failed")

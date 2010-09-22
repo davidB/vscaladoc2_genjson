@@ -18,6 +18,7 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import net_alchim31_utils.FileSystemHelper
 import scala.tools.nsc.doc.model.ValueParam
 import scala.tools.nsc.doc.model.AbstractType
 import scala.tools.nsc.doc.model.AliasType
@@ -67,10 +68,10 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
   /**
    * @param rootPackage The model to generate in the form of a sequence of packages.
    */
-  def generate(rootPackage: DocTemplateEntity): Unit = {
+  def generate(rootPackage: DocTemplateEntity, fs : FileSystemHelper): Unit = {
     import scala.collection.mutable
 
-    def writeMembers(uoa: UriOfApi, v: List[MemberEntity], written: mutable.HashSet[UriOfApi]): Unit = {
+    def writeMembers(uoa: UriOfApi, v: List[MemberEntity], written: mutable.HashSet[UriOfApi]): mutable.HashSet[UriOfApi] = {
       if (!(written contains uoa)) {
         write(uoa, v)
         written += uoa
@@ -83,17 +84,21 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
           }
           case _ => () // don't go deep
         }
-
       }
+      written
     }
     println("generate to " + _siteRoot)
-    writeArtifactVersionInfo()
-    writeMembers(uoaHelper(rootPackage), List(rootPackage), mutable.HashSet.empty[UriOfApi])
-    //TODO write archive (jar)
+    println("generate artifact info... ")
+    val f0 = writeArtifactVersionInfo()
+    println("generate code info... ")
+    val fn = writeMembers(uoaHelper(rootPackage), List(rootPackage), mutable.HashSet.empty[UriOfApi]).toSet.map { x : UriOfApi => uoaHelper.toRefPath(x) + ".json"}
+    println("generate archive... ")
+    fs.jar(new JFile(_siteRoot, cfg.artifactId + "-" + cfg.version + "-apidoc.jar"), _siteRoot, fn + f0)
   }
 
-  def writeArtifactVersionInfo() {
-    val f = new JFile(_siteRoot, cfg.artifactId + "/" + cfg.version + ".json")
+  def writeArtifactVersionInfo() : String = {
+	val b = cfg.artifactId + "/" + cfg.version + ".json"
+    val f = new JFile(_siteRoot, b)
     f.getParentFile.mkdirs()
     val jg = _jacksonFactory.createJsonGenerator(f, JsonEncoding.UTF8);
     jg.useDefaultPrettyPrinter() // enable indentation just to make debug/testing easier
@@ -117,6 +122,7 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
       jg.flush()
       jg.close()
     }
+    b
   }
 
   def write(uoa: UriOfApi, v: List[MemberEntity]) {
