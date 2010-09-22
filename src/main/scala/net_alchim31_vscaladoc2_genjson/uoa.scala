@@ -40,8 +40,7 @@ class UriOfApiHelper(val cfg: Cfg) {
     uoa.artifactId + "/" + uoa.version + "/" +
     uoa.packageName +
     uoa.typeName.map(x => "/" + encode(x)).getOrElse("") +
-    uoa.memberName.map(x => "/" + encode(x)).getOrElse("") +
-    ".json"
+    uoa.memberName.map(x => "/" + encode(x)).getOrElse("")
   }
 
   def toRefPath[T <: Entity](v: T): String = toRefPath(apply(v))
@@ -74,7 +73,7 @@ class UriOfApiHelper(val cfg: Cfg) {
               (Some(x.artifactId), Some(x.version))
             } orElse {
               // for performance should be done first, but several artifact (have scala.* package) : scala-compiler,...  
-              for (p <- packageName; if p.startsWith("scala."); dep <- _scalaLib) yield (Some(dep.artifactId), Some(dep.version))
+              for (p <- packageName; if (p + ".").startsWith("scala."); dep <- _scalaLib) yield (Some(dep.artifactId), Some(dep.version))
             } orElse {
               for (p <- packageName; if p.startsWith("java.") || p.startsWith("javax.")) yield _jseAV
             } getOrElse {
