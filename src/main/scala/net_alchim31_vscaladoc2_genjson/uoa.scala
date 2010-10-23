@@ -44,7 +44,7 @@ class UriOfApiHelper(val cfg: Cfg) {
   }
 
   def toRefPath[T <: Entity](v: T): String = toRefPath(apply(v))
-  
+
   def findTypeEntity[T <: Entity](v: T): Option[TemplateEntity] = v match {
     case t: TemplateEntity if t.isPackage => None
     case t: TemplateEntity => Some(t)
@@ -72,7 +72,7 @@ class UriOfApiHelper(val cfg: Cfg) {
             cfg.dependencies.find(_.contains(packageName, typeName)).map { x =>
               (Some(x.artifactId), Some(x.version))
             } orElse {
-              // for performance should be done first, but several artifact (have scala.* package) : scala-compiler,...  
+              // for performance should be done first, but several artifact (have scala.* package) : scala-compiler,...
               for (p <- packageName; if (p + ".").startsWith("scala."); dep <- _scalaLib) yield (Some(dep.artifactId), Some(dep.version))
             } orElse {
               for (p <- packageName; if p.startsWith("java.") || p.startsWith("javax.")) yield _jseAV
@@ -88,11 +88,11 @@ class UriOfApiHelper(val cfg: Cfg) {
 
         packageName = packageEntity.map(_.qualifiedName)
         typeName = typeEntity.map { t =>
-          t.qualifiedName.substring(packageName.map(_.length + 1).getOrElse(0)) //+ if (t.isObject) "$object" else "")
+          t.qualifiedName.substring(packageName.map(_.length + 1).getOrElse(0)) //+ (if (t.isObject) "$object" else "")
         }
         memberName = typeEntity.flatMap { t =>
           (v.qualifiedName.length > t.qualifiedName.length) match {
-            case true => Some(v.qualifiedName.substring(t.qualifiedName.length + 1))
+            case true => Some((if (t.isObject) "o$_" else "") + v.qualifiedName.substring(t.qualifiedName.length + 1))
             case false => None
           }
         }

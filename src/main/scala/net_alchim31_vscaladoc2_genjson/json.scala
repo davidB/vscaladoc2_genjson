@@ -51,7 +51,7 @@ import java.io.{ File => JFile }
 //see http://www.cowtowncoder.com/blog/archives/2009/01/entry_132.html
 /**
  * A class that can generate api as json files to some fixed root folder.
- * 
+ *
  * @author David Bernard
  */
 class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper: HtmlHelper) {
@@ -77,7 +77,10 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
         written += uoa
         v.foreach {
           case tpl: DocTemplateEntity => {
-            val groups = tpl.members.filter(x => x.isInstanceOf[DocTemplateEntity] || (x.inheritedFrom.isEmpty && !x.isInstanceOf[Constructor])).groupBy(x => uoaHelper(x))
+            val groups = tpl.members.filter{x =>
+              val notInherited = x.inheritedFrom.isEmpty || x.inheritedFrom.contains(tpl)
+            	x.isInstanceOf[DocTemplateEntity] || ( notInherited && !x.isInstanceOf[Constructor])
+            }.groupBy(x => uoaHelper(x))
             for ((uoa, ms) <- groups) {
               writeMembers(uoa, ms, written)
             }
@@ -255,7 +258,7 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
     	  case Nil => List(("( )", None))
     	  case comma :: tail => ("( ", None) +: tail :+ (" )", None)
       }
-      
+
     }.flatten
   }
   // TreeEntity since 2.8.1
@@ -271,13 +274,13 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
   //	        myXml ++= (str.substring(index,from), None)
   //	        index = from
   //	      }
-  //	     
-  //      if (index == from) {           
+  //
+  //      if (index == from) {
   //        val member:Entity = x._2._1
   //        member match {
   //          case mbr: DocTemplateEntity =>
   //            myXml ++= (str.substring(from, to), Some(uoaHelper.toRefPath(mbr)))
-  //          case mbr: MemberEntity => 
+  //          case mbr: MemberEntity =>
   //            myXml ++= (str.substring(from, to), Some(uoaHelper.toRefPath(mbr)))
   //          case _ => assert(false, "unexpected case in defaultValueToHtml")
   //        }
@@ -292,7 +295,13 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
     jg.writeStringField("name", v.name)
     jg.writeStringField("qualifiedName", v.qualifiedName)
     jg.writeStringField("definitionName", v.definitionName)
-    v.comment.foreach { x => jg.writeStringField("description", htmlHelper.commentToHtml(x).toString) }
+    v.comment.foreach { x =>
+      jg.writeStringField("description", htmlHelper.commentToHtml(x).toString)
+      jg.writeFieldName("docTags")
+      jg.writeStartArray()
+      // TODO extracts tags
+      jg.writeEndArray()
+    }
     jg.writeStringField("flags", v.visibility.toString)
     v.deprecation.foreach { x => jg.writeStringField("deprecation", htmlHelper.bodyToHtml(x).toString) }
     writeFieldEntityList("inheritedFrom", v.inheritedFrom, jg)
@@ -335,9 +344,10 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
 
   def writeClassData(v: Class, jg: JsonGenerator) {
     writeTraitData(v, jg)
+    jg.writeBooleanField("isCaseClass", v.isCaseClass)
     jg.writeArrayFieldStart("constructors")
     for (x <- v.constructors) {
-      jg.writeStartObject()	
+      jg.writeStartObject()
       writeMemberEntityData(x, jg)
       writeSplitStringWithRef(Some("valueParams"), vparamsToSplitStringWithRef(v.valueParams), jg)
       jg.writeEndObject()
@@ -353,7 +363,7 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
     writeObjectData(v, jg)
     writeFieldEntityList("packages", v.packages, jg)
   }
-  
+
   def writeValData(v: Val, jg: JsonGenerator) {
     writeMemberEntityData(v, jg)
     jg.writeBooleanField("isUseCase", v.isUseCase)
@@ -365,7 +375,7 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
     writeSplitStringWithRef(Some("typeParams"), tparamsToSplitStringWithRef(v.typeParams), jg)
     writeSplitStringWithRef(Some("valueParams"), vparamsToSplitStringWithRef(v.valueParams), jg)
   }
-  
+
   def writeAliasTypeData(v: AliasType, jg: JsonGenerator) {
     writeMemberEntityData(v, jg)
     jg.writeBooleanField("isUseCase", v.isUseCase)
