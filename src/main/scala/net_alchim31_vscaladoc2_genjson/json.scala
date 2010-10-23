@@ -178,8 +178,8 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
 
   def writeFieldEntityList[T <: Entity](fieldName: String, l: List[T], jg: JsonGenerator) {
     jg.writeArrayFieldStart(fieldName)
-    for (e <- l) {
-      jg.writeString(uoaHelper.toRefPath(e))
+    l.map(x => uoaHelper.toRefPath(x)).sortWith(_ < _).distinct.foreach{ ref =>
+      jg.writeString(ref)
     }
     jg.writeEndArray()
   }
@@ -205,7 +205,10 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
         lastFrag = start
       }
       b += StringWithRef(v.name.substring(start, start+end), Some(uoaHelper.toRefPath(entity)))
-      lastFrag = start+end
+      lastFrag = start + end
+    }
+    if (lastFrag < v.name.length ) {
+      b += StringWithRef(v.name.substring(lastFrag), None)
     }
     b.toList
   }
