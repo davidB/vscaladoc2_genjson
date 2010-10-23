@@ -56,7 +56,10 @@ import java.io.{ File => JFile }
  */
 class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper: HtmlHelper) {
 
-  type SplitStringWithRef = List[(String, Option[String])]
+  case class StringWithRef(s : String, ref : Option[String])
+  implicit def toStringWithRef(x : Tuple2[String, Option[String]]) = StringWithRef(x._1, x._2)
+
+  type SplitStringWithRef = List[StringWithRef]
 
   private val _encoding: String = "UTF-8"
 
@@ -184,10 +187,10 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
   def writeSplitStringWithRef(fieldName: Option[String], v: SplitStringWithRef, jg: JsonGenerator) {
     fieldName.foreach { x => jg.writeFieldName(x) }
     jg.writeStartArray()
-    for ((str, oRef) <- v) {
+    for (swr <- v) {
       jg.writeStartArray()
-      jg.writeString(str)
-      oRef.foreach { x => jg.writeString(x) }
+      jg.writeString(swr.s)
+      swr.ref.foreach { x => jg.writeString(x) }
       jg.writeEndArray()
     }
     jg.writeEndArray()
@@ -195,13 +198,13 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
 
   def tentityToSplitStringWithRef(v: TypeEntity): SplitStringWithRef = {
     var lastFrag = 0
-    val b = new ListBuffer[(String, Option[String])]()
+    val b = new ListBuffer[StringWithRef]()
     for ((start, (entity, end)) <- v.refEntity) {
       if (start > lastFrag) {
-        b += Tuple2(v.name.substring(lastFrag, start), None)
+        b += StringWithRef(v.name.substring(lastFrag, start), None)
         lastFrag = start
       }
-      b += Tuple2(v.name.substring(start, start+end), Some(uoaHelper.toRefPath(entity)))
+      b += StringWithRef(v.name.substring(start, start+end), Some(uoaHelper.toRefPath(entity)))
       lastFrag = start+end
     }
     b.toList
@@ -212,19 +215,19 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
       Nil
     } else {
       def tparam0(tp: TypeParam): SplitStringWithRef =
-        (tp.variance + tp.name, None) +: boundsToSplitStringWithRef(tp.hi, tp.lo)
+        StringWithRef(tp.variance + tp.name, None) +: boundsToSplitStringWithRef(tp.hi, tp.lo)
       def tparams0(tpss: List[TypeParam]): SplitStringWithRef = (tpss: @unchecked) match {
         case tp :: Nil => tparam0(tp)
-        case tp :: tps => tparam0(tp) ::: ((", ", None) +: tparams0(tps))
+        case tp :: tps => tparam0(tp) ::: (StringWithRef(", ", None) +: tparams0(tps))
       }
-      ("[", None) +: tparams0(v) :+ ("]", None)
+      StringWithRef("[", None) +: tparams0(v) :+ StringWithRef("]", None)
     }
   }
 
   def boundsToSplitStringWithRef(hi: Option[TypeEntity], lo: Option[TypeEntity]): SplitStringWithRef = {
     def bound0(bnd: Option[TypeEntity], pre: String): SplitStringWithRef = bnd match {
       case None => Nil
-      case Some(tpe) => (pre, None) +: tentityToSplitStringWithRef(tpe)
+      case Some(tpe) => StringWithRef(pre, None) +: tentityToSplitStringWithRef(tpe)
     }
     bound0(hi, "<:") ::: bound0(lo, ">:")
   }
@@ -244,19 +247,19 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
   def vparamsToSplitStringWithRef(v: List[List[ValueParam]]): SplitStringWithRef = {
     v.map { params =>
       val l = params.foldLeft[SplitStringWithRef](Nil) { (r, param) =>
-        var b: SplitStringWithRef = r :+ (", ", None)
-        if (param.isImplicit) b = b :+ ("implicit", None)
-        b = b :+ (param.name + " : ", None)
+        var b: SplitStringWithRef = r :+ StringWithRef(", ", None)
+        if (param.isImplicit) b = b :+ StringWithRef("implicit", None)
+        b = b :+ StringWithRef(param.name + " : ", None)
         b = b ++ tentityToSplitStringWithRef(param.resultType)
         param.defaultValue match {
-          case Some(s) => b = b :+ (s, None)
+          case Some(s) => b = b :+ StringWithRef(s, None)
           case None => ()
         }
         b
       }
       l match {
-    	  case Nil => List(("( )", None))
-    	  case comma :: tail => ("( ", None) +: tail :+ (" )", None)
+    	  case Nil => List(StringWithRef("( )", None))
+    	  case comma :: tail => StringWithRef("( ", None) +: tail :+ StringWithRef(" )", None)
       }
 
     }.flatten
