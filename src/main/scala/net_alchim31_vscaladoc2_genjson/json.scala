@@ -167,7 +167,7 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
       // Non top element
       case v: Constructor => throw new Exception("should not append here")
       case v: Def => writeDefData(v, jg); "def"
-      case v: Val => writeValData(v, jg); if (v.isLazyVal) "lazyVal" else if (v.isVar) "var" else "val"
+      case v: Val => writeValData(v, jg); if (v.isLazyVal) "lazy val" else if (v.isVar) "var" else "val"
       case v: AliasType => writeAliasTypeData(v, jg); "aliasType"
       case v: AbstractType => writeAbstractTypeData(v, jg); "abstractType"
       case v => "undef_" + v.getClass
@@ -356,6 +356,8 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
       jg.writeStartObject()
       writeMemberEntityData(x, jg)
       writeSplitStringWithRef(Some("valueParams"), vparamsToSplitStringWithRef(v.valueParams), jg)
+      jg.writeBooleanField("isPrimary", x.isPrimary)
+      jg.writeStringField("kind", "def")
       jg.writeEndObject()
     }
     jg.writeEndArray()
