@@ -18,6 +18,8 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import org.jsoup.safety.Whitelist
+import org.jsoup.Jsoup
 import net_alchim31_utils.MiniLogger
 import net_alchim31_utils.FileSystemHelper
 import scala.tools.nsc.doc.model.ValueParam
@@ -55,7 +57,7 @@ import java.io.{ File => JFile }
  *
  * @author David Bernard
  */
-class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper: HtmlHelper) {
+class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper: HtmlHelper, val fs : FileSystemHelper, val commentPlus : CommentPlus) {
 
   case class StringWithRef(s : String, ref : Option[String])
   implicit def toStringWithRef(x : Tuple2[String, Option[String]]) = StringWithRef(x._1, x._2)
@@ -72,7 +74,7 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
   /**
    * @param rootPackage The model to generate in the form of a sequence of packages.
    */
-  def generate(rootPackage: DocTemplateEntity, fs : FileSystemHelper): Unit = {
+  def generate(rootPackage: DocTemplateEntity): Unit = {
     import scala.collection.mutable
 
     def writeMembers(uoa: UriOfApi, v: List[MemberEntity], written: mutable.HashSet[UriOfApi]): mutable.HashSet[UriOfApi] = {
@@ -104,10 +106,10 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
     val archive = new JFile(_siteRoot, cfg.artifactId + "-" + cfg.version + "-apidoc.jar")
     fs.jar(archive, _siteRoot, fn + f0)
     logger.info("move (overwrite) generated to %s ...", cfg.apidocdir)
-    commit(fs, archive.getName, (cfg.artifactId + "/" + cfg.version), (cfg.artifactId + "/" + cfg.version + ".json"))
+    commit(archive.getName, (cfg.artifactId + "/" + cfg.version), (cfg.artifactId + "/" + cfg.version + ".json"))
   }
 
-  private def commit(fs : FileSystemHelper, filenames : String*) {
+  private def commit(filenames : String*) {
     for (fname <- filenames) {
       val dest = new JFile(cfg.apidocdir, fname)
       if (dest.exists) {
@@ -159,6 +161,7 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
     jg.useDefaultPrettyPrinter() // enable indentation just to make debug/testing easier
     try {
       jg.writeStartObject()
+      jg.writeNumberField("v", 2)
       jg.writeStringField("uoa", rpath)
       jg.writeArrayFieldStart("e")
       for (m <- v) {
@@ -319,20 +322,24 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
   def writeMemberEntityData(v: MemberEntity, jg: JsonGenerator) {
     jg.writeStringField("name", v.name)
     jg.writeStringField("qualifiedName", v.qualifiedName)
-    jg.writeStringField("definitionName", v.definitionName)
-    v.comment.foreach { x =>
-      jg.writeStringField("description", htmlHelper.commentToHtml(x).toString)
-      jg.writeFieldName("docTags")
-      jg.writeStartArray()
-      // TODO extracts tags
-      jg.writeEndArray()
-    }
+    //jg.writeStringField("definitionName", v.definitionName)
+    jg.writeStringField("description", commentPlus.findAllDescription(cfg.sources, v, htmlHelper.commentToHtml(v.comment).toString))
+//    v.comment.foreach { x =>
+//      val comments =
+//      val sb = new StringBuilder
+//      jg.writeFieldName("docTags")
+//      jg.writeStartArray()
+//      // TODO extracts tags
+//      jg.writeEndArray()
+//    }
     jg.writeStringField("flags", v.visibility.toString)
     v.deprecation.foreach { x => jg.writeStringField("deprecation", htmlHelper.bodyToHtml(x).toString) }
     writeFieldEntityList("inheritedFrom", v.inheritedFrom, jg)
     writeSplitStringWithRef(Some("visibility"), visibilityToSplitStringWithRef(v), jg)
     writeSplitStringWithRef(Some("resultType"), tentityToSplitStringWithRef(v.resultType), jg)
   }
+
+
 
   def writeDocTemplateEntityData(v: DocTemplateEntity, jg: JsonGenerator) {
     writeMemberEntityData(v, jg)

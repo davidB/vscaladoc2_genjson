@@ -18,27 +18,31 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import net_alchim31_utils.FileSystemHelper
+import scala.tools.nsc.doc.model.MemberEntity
+import scala.tools.nsc.doc.model.Package
+
 import scala.xml.NodeSeq
 // copy from scala.tools.nsc.doc.html.HtmlPage
 class HtmlHelper(val uoaHelper : UriOfApiHelper) {
-  import scala.tools.nsc.doc.model.comment._    
-  
+  import scala.tools.nsc.doc.model.comment._
+
   /**
    * Transforms an optional comment into an styled HTML tree representing its body if it is defined, or into an empty
    * node sequence if it is not.
    */
    def commentToHtml(comment: Option[Comment]): NodeSeq =
      (comment map (commentToHtml(_))) getOrElse NodeSeq.Empty
-  
+
    /**
     * Transforms a comment into an styled HTML tree representing its body.
     */
    def commentToHtml(comment: Comment): NodeSeq =
      bodyToHtml(comment.body)
- 
+
    def bodyToHtml(body: Body): NodeSeq =
      body.blocks flatMap (blockToHtml(_))
- 
+
    def blockToHtml(block: Block): NodeSeq = block match {
      case Title(in, 1) => <h3>{ inlineToHtml(in) }</h3>
      case Title(in, 2) => <h4>{ inlineToHtml(in) }</h4>
@@ -55,7 +59,7 @@ class HtmlHelper(val uoaHelper : UriOfApiHelper) {
      case HorizontalRule() =>
        <hr/>
    }
-  
+
    def listItemsToHtml(items: Seq[Block]) =
      items.foldLeft(xml.NodeSeq.Empty){ (xmlList, item) =>
        item match {
@@ -67,7 +71,7 @@ class HtmlHelper(val uoaHelper : UriOfApiHelper) {
            xmlList :+ <li>{ blockToHtml(block) }</li>
        }
    }
-  
+
    def inlineToHtml(inl: Inline): NodeSeq = inl match {
      case Chain(items) => items flatMap (inlineToHtml(_))
      case Italic(in) => <i>{ inlineToHtml(in) }</i>
@@ -82,4 +86,34 @@ class HtmlHelper(val uoaHelper : UriOfApiHelper) {
      case Summary(in) => inlineToHtml(in)
      case HtmlTag(tag) => xml.Unparsed(tag)
    }
+}
+
+/**
+ * A helper class use to group methods used as workaround about some extra comments extraction (not provided by regular Scaladoc2)
+ *
+ * @author david.bernard
+ *
+ */
+class CommentPlus(private val fs : FileSystemHelper) {
+
+  import org.jsoup.safety.Whitelist
+  import org.jsoup.Jsoup
+
+  /**
+   * Workaround method use to append comments not extracted by regular Scaladoc2
+   *
+   * @TODO crappy to refactor later
+   * @param v
+   * @return
+   */
+  def findAllDescription(sources : List[Source], v : MemberEntity, alreadyExtracted : String) : String = {
+    val sb = new StringBuilder(alreadyExtracted)
+    if (v.isInstanceOf[Package]) {
+      val rpath = v.qualifiedName.replace('.', '/') + "/package.html"
+      sources.flatMap(_.find(rpath)).foreach { f =>
+        sb.append(fs.toString(f))
+      }
+    }
+    Jsoup.clean(sb.toString, Whitelist.relaxed())
+  }
 }

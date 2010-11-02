@@ -134,7 +134,7 @@ class MyDocFactory(logger : MiniLogger, reporter : Reporter, settings : doc.Sett
       val uoaHelper = new UriOfApiHelper(cfg)
       val htmlHelper = new HtmlHelper(uoaHelper)
       //(new html.HtmlFactory(docModel)).generate
-      new JsonDocFactory(logger, cfg, uoaHelper, htmlHelper).generate(docModel.rootPackage, fs)
+      new JsonDocFactory(logger, cfg, uoaHelper, htmlHelper, fs, new CommentPlus(fs)).generate(docModel.rootPackage)
       logger.info("...DONE")
     } else {
       logger.error("...failed")
