@@ -18,6 +18,7 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import net_alchim31_utils.MiniLogger
 import org.jsoup.safety.Whitelist
 import org.jsoup.Jsoup
 import net_alchim31_utils.FileSystemHelper
@@ -84,7 +85,7 @@ class Cfg {
   }
 }
 
-class CfgHelper(val fs : FileSystemHelper) {
+class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
   def apply(json : String) : Cfg = apply(new org.codehaus.jackson.JsonFactory().createJsonParser(json))
   def apply(json : File) : Cfg = apply(new org.codehaus.jackson.JsonFactory().createJsonParser(json))
 
@@ -99,17 +100,18 @@ class CfgHelper(val fs : FileSystemHelper) {
         // Let's move to value
         jp.nextToken()
         fieldName match {
+          case "loglevel" => logger.setLevel(jp.getText)
           case "artifactId" => b.artifactId = jp.getText
           case "version" => b.version = jp.getText
           case "description" => b.description = jp.getText
           case "title" => b.title = Some(jp.getText)
           case "copyright" => b.copyright = Some(jp.getText)
           case "dependencies" if jp.getCurrentToken == JsonToken.START_ARRAY => b.dependencies = parseDependencies(jp)
-          case "dependencies" => println("dependencies should be an array of array") //TODO use logger
+          case "dependencies" => logger.warn("dependencies should be an array of array")
           case "sources" if jp.getCurrentToken == JsonToken.START_ARRAY => b.sources = parseSources(jp)
-          case "sources" => println("dependencies should be an array of array") //TODO use logger
+          case "sources" => logger.warn("sources should be an array of array")
           case "apidocdir" => b.apidocdir = new File(jp.getText).getCanonicalFile
-          case x => println("unsupported field :" + x)
+          case x => logger.warn("unsupported field :" + x)
         }
       }
       completeDescriptionWithOverview(b)

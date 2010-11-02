@@ -18,6 +18,7 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import net_alchim31_utils.MiniLogger
 import net_alchim31_utils.FileSystemHelper
 import scala.tools.nsc.doc.model.ValueParam
 import scala.tools.nsc.doc.model.AbstractType
@@ -54,7 +55,7 @@ import java.io.{ File => JFile }
  *
  * @author David Bernard
  */
-class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper: HtmlHelper) {
+class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper: HtmlHelper) {
 
   case class StringWithRef(s : String, ref : Option[String])
   implicit def toStringWithRef(x : Tuple2[String, Option[String]]) = StringWithRef(x._1, x._2)
@@ -93,16 +94,16 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
       }
       written
     }
-    println("generate to " + _siteRoot)
+    logger.info("generate to %s", _siteRoot)
     _siteRoot.mkdirs()
-    println("generate artifact info... ")
+    logger.info("generate artifact info... ")
     val f0 = writeArtifactVersionInfo()
-    println("generate code info... ")
+    logger.info("generate code info... ")
     val fn = writeMembers(uoaHelper(rootPackage), List(rootPackage), mutable.HashSet.empty[UriOfApi]).toSet.map { x : UriOfApi => uoaHelper.toRefPath(x) + ".json"}
-    println("generate archive... ")
+    logger.info("generate archive... ")
     val archive = new JFile(_siteRoot, cfg.artifactId + "-" + cfg.version + "-apidoc.jar")
     fs.jar(archive, _siteRoot, fn + f0)
-    println("move (overwrite) generated to "+ cfg.apidocdir + " ... ")
+    logger.info("move (overwrite) generated to %s ...", cfg.apidocdir)
     commit(fs, archive.getName, (cfg.artifactId + "/" + cfg.version), (cfg.artifactId + "/" + cfg.version + ".json"))
   }
 
@@ -116,7 +117,7 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
     }
     fs.deleteRecursively(_siteRoot)
     if (_siteRoot.exists) {
-      println("can't delete workingd dir : " + _siteRoot)
+      logger.info("can't delete workingd dir : %s", _siteRoot)
     }
   }
 
@@ -151,7 +152,7 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
 
   def write(uoa: UriOfApi, v: List[MemberEntity]) {
     val rpath = uoaHelper.toRefPath(uoa)
-    println("writing " + rpath)
+    logger.debug("writing ", rpath)
     val f = new JFile(_siteRoot, rpath + ".json")
     f.getParentFile.mkdirs()
     val jg = _jacksonFactory.createJsonGenerator(f, JsonEncoding.UTF8);

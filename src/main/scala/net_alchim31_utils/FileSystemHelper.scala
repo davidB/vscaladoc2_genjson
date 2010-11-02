@@ -13,6 +13,7 @@ import java.util.zip.GZIPOutputStream
 import java.util.regex.Pattern
 import java.net.URL
 import java.nio.channels.FileChannel
+import java.util.logging.Logger
 
 object JFile {
   def apply(pathName : String) : File = new File(pathName).getCanonicalFile
@@ -20,7 +21,7 @@ object JFile {
   def apply(parent : File, subPaths : String*) : File = new File(parent,  subPaths.mkString(File.separator)).getCanonicalFile
 }
 
-class FileSystemHelper {
+class FileSystemHelper(logger : MiniLogger) {
 
 
   def changeSuffix(fileName : String, newSuffix : String) = fileName.substring(0, fileName.lastIndexOf('.') + 1) + newSuffix
@@ -47,7 +48,7 @@ class FileSystemHelper {
             case l => l.foldLeft(false)((r, pattern) => r || pattern.matcher(rpath).matches())
         }
         val b = !isExcluded && isIncluded
-        println("check", b, rpath, file)
+        logger.trace("check %s = %s under %s", b, rpath, file)
         b
     }
 
@@ -69,7 +70,7 @@ class FileSystemHelper {
     }
 
     val b = findFiles(root, "")
-    println("nb files found under ", root, b.size, includes, excludes)
+    logger.debug("nb files found under %s : %d with includes[%s] excludes[%s]", root, b.size, includes, excludes)
     b
   }
 

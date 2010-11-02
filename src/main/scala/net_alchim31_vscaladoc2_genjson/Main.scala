@@ -18,6 +18,7 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import net_alchim31_utils.MiniLogger
 import net_alchim31_utils.FileSystemHelper
 import net_alchim31_utils.FileSystemHelper
 import java.io.File
@@ -31,28 +32,32 @@ import scala.tools.nsc.reporters.{ Reporter, ConsoleReporter }
  */
 object Main {
 
-  /** The main class for scaladoc, a front-end for the Scala compiler 
+  /** The main class for scaladoc, a front-end for the Scala compiler
    *  that generates documentation from source files.
    */
 
   private val versionMsg : String = "VScaladoc2_genjson 0.1"
+  private val _logger = new MiniLogger("vscaladoc2.genjson")
+  private lazy val _fs = new FileSystemHelper(_logger)
 
-  private lazy val _fs = new FileSystemHelper()
-  
   def main(args : Array[String]) {
-    val jsonCfg = args(0)
-    println(jsonCfg)
-    val reporter = process(new CfgHelper(_fs).apply(new File(jsonCfg)))
+    if (args.length < 1) {
+      _logger.error("one argument required : the json file to define configuration")
+    } else {
+      val jsonCfg = args(0)
+      _logger.trace(jsonCfg)
+      val reporter = process(new CfgHelper(_logger, _fs).apply(new File(jsonCfg)))
+    }
     //exit(if (reporter.hasErrors) 1 else 0)
   }
 
   //  def mkScaladoc2Args() : Array[String] = {
   //      var back = new ArrayBuffer[String]()
-  //      
+  //
   //      val outputDir = new File(System.getProperty("output", System.getProperty("user.dir") + "/api"))
   //      outputDir.mkdirs()
   //      back + ("-d", outputDir.getCanonicalPath)
-  //      
+  //
   //      val inputDir = new File(System.getProperty("input", System.getProperty("user.dir") + "/src"))
   //      if (!inputDir.exists) {
   //          throw new IllegalArgumentException("no 'input' dir defined")
@@ -62,12 +67,12 @@ object Main {
   //  }
 
   def process(cfg : Cfg) : ConsoleReporter = {
-    println("docSettings.outdir", cfg.apidocdir)
+    _logger.debug("cfg.apidocdir : %s", cfg.apidocdir)
     cfg.apidocdir.mkdirs()
 
     def error(msg : String) : Unit = {
       //reporter.error(FakePos("scalac"), msg + "\n  scalac -help  gives more information")
-      println("ERROR: " + msg)
+      _logger.error(msg)
     }
 
     val docSettings : doc.Settings = new doc.Settings(error)
@@ -75,7 +80,7 @@ object Main {
 
     //    docSettings.d.
     val l = cfg.scaladoc2Args
-    println(l)
+    _logger.debug("scaladoc2 injected args : %s", l)
     val command = new CompilerCommand(l, docSettings)
 
     //    if (!reporter.hasErrors) { // No need to continue if reading the command generated errors
@@ -93,7 +98,7 @@ object Main {
     else if (docSettings.showPhases.value)
       reporter.warning(null, "Phases are restricted when using Scaladoc")
     else try {
-      val docProcessor = new MyDocFactory(reporter, docSettings, cfg, _fs)
+      val docProcessor = new MyDocFactory(_logger, reporter, docSettings, cfg, _fs)
       docProcessor.document(command.files)
 
     } catch {
@@ -110,7 +115,7 @@ object Main {
 
 }
 
-class MyDocFactory(reporter : Reporter, settings : doc.Settings, cfg : Cfg, val fs : FileSystemHelper) extends DocFactory(reporter, settings) {
+class MyDocFactory(logger : MiniLogger, reporter : Reporter, settings : doc.Settings, cfg : Cfg, val fs : FileSystemHelper) extends DocFactory(reporter, settings) {
 
   /**
    * Creates a scaladoc site for all symbols defined in this call's `files`, as well as those defined in `files` of
@@ -118,21 +123,21 @@ class MyDocFactory(reporter : Reporter, settings : doc.Settings, cfg : Cfg, val 
    * @param files The list of paths (relative to the compiler's source path, or absolute) of files to document.
    */
   override def document(files : List[String]) : Unit = {
-    println("analyzing sources...")  
+    logger.info("analyzing sources...")
     (new compiler.Run()) compile files
     compiler.addSourceless
     if (!reporter.hasErrors) {
       val modelFactory = (new model.ModelFactory(compiler, settings) with model.comment.CommentFactory)
       val docModel = modelFactory.makeModel
-      println("... model contains " + modelFactory.templatesCount + " documentable top entity")
-      println("generating json into "+ cfg.apidocdir +"...")
+      logger.info("... model contains %s  documentable top entity", modelFactory.templatesCount)
+      logger.info("generating json into %s ...", cfg.apidocdir)
       val uoaHelper = new UriOfApiHelper(cfg)
       val htmlHelper = new HtmlHelper(uoaHelper)
       //(new html.HtmlFactory(docModel)).generate
-      new JsonDocFactory(cfg, uoaHelper, htmlHelper).generate(docModel.rootPackage, fs)
-      println("...DONE")  
+      new JsonDocFactory(logger, cfg, uoaHelper, htmlHelper).generate(docModel.rootPackage, fs)
+      logger.info("...DONE")
     } else {
-      println("...failed")
+      logger.error("...failed")
     }
   }
 }

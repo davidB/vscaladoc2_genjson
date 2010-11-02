@@ -17,10 +17,11 @@
  */
 
 /**
- * 
+ *
  */
 package net_alchim31_vscaladoc2_genjson
 
+import net_alchim31_utils.MiniLogger
 import net_alchim31_utils.FileSystemHelper
 import java.io.File
 import junit.framework.Assert
@@ -30,11 +31,12 @@ import org.junit.Test
  *
  */
 class CfgTest {
-  val fs = new FileSystemHelper()
-  
+  val logger = new MiniLogger("test")
+  val fs = new FileSystemHelper(logger)
+
   @Test
   def parseStringField() {
-    val cfg = new CfgHelper(fs)("""{
+    val cfg = new CfgHelper(logger, fs)("""{
             		"artifactId" : "xArtifactId",
             		"version" : "xVersion",
             		"apidocdir" : "/tmp"
@@ -59,12 +61,12 @@ class CfgTest {
               ]
             }
         """
-    val cfg = new CfgHelper(fs)(txt)
+    val cfg = new CfgHelper(logger, fs)(txt)
     Assert.assertEquals("demo1", cfg.artifactId)
     Assert.assertEquals("0.1-SNAPSHOT", cfg.version)
     Assert.assertEquals(new File("/xxx/work/oss/demo-1/target/site/scaladocs").getCanonicalFile, cfg.apidocdir)
   }
-  
+
   @Test
   def parseOfSources() {
     //        val cfg = Cfg(""")
