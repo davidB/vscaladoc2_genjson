@@ -64,7 +64,7 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
   private val _encoding: String = "UTF-8"
 
   /*universe.settings.outdir.value*/
-  private val _siteRoot: JFile = cfg.apidocdir
+  private val _siteRoot: JFile = cfg.apidocdirTmp
 
   private val _jacksonFactory = new org.codehaus.jackson.JsonFactory()
 
@@ -94,12 +94,30 @@ class JsonDocFactory(val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper
       written
     }
     println("generate to " + _siteRoot)
+    _siteRoot.mkdirs()
     println("generate artifact info... ")
     val f0 = writeArtifactVersionInfo()
     println("generate code info... ")
     val fn = writeMembers(uoaHelper(rootPackage), List(rootPackage), mutable.HashSet.empty[UriOfApi]).toSet.map { x : UriOfApi => uoaHelper.toRefPath(x) + ".json"}
     println("generate archive... ")
-    fs.jar(new JFile(_siteRoot, cfg.artifactId + "-" + cfg.version + "-apidoc.jar"), _siteRoot, fn + f0)
+    val archive = new JFile(_siteRoot, cfg.artifactId + "-" + cfg.version + "-apidoc.jar")
+    fs.jar(archive, _siteRoot, fn + f0)
+    println("move (overwrite) generated to "+ cfg.apidocdir + " ... ")
+    commit(fs, archive.getName, (cfg.artifactId + "/" + cfg.version), (cfg.artifactId + "/" + cfg.version + ".json"))
+  }
+
+  private def commit(fs : FileSystemHelper, filenames : String*) {
+    for (fname <- filenames) {
+      val dest = new JFile(cfg.apidocdir, fname)
+      if (dest.exists) {
+        fs.deleteRecursively(dest)
+      }
+      fs.move(new JFile(_siteRoot, fname), dest)
+    }
+    fs.deleteRecursively(_siteRoot)
+    if (_siteRoot.exists) {
+      println("can't delete workingd dir : " + _siteRoot)
+    }
   }
 
   def writeArtifactVersionInfo() : String = {

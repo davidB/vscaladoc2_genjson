@@ -282,12 +282,10 @@
                 </path>
                 <property name="runtime_classpath" refid="maven.test.classpath" />
                 <echo message="runtime classpath: ${runtime_classpath}" />
-                <delete dir="${basedir}/src/it/demo-1/target/site/scaladocs" />
                 <echo file="${project.build.directory}/demo1.json" append="false"><![CDATA[
                   {
                   "artifactId" : "vscaladoc2_demoprj",
                   "version" : "0.1-SNAPSHOT",
-                  "apidocdir" : "${basedir}/../vscaladoc2_demoprj/target/apidoc",
                   "dependencies" : [
                     ["${settings.localRepository}/org/scala-lang/scala-library/${scala.version}/scala-library-${scala.version}.jar", "scala-library", "${scala.version}"]
                   ],

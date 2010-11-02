@@ -127,9 +127,12 @@ class FileSystemHelper {
       throw new IllegalArgumentException("file not found :" + src)
     }
     if (src.exists()) {
+      if (dest.exists) {
+        deleteRecursively(dest)
+      }
       if (!src.renameTo(dest)) {
         copy(src, dest)
-        src.delete()
+        deleteRecursively(src)
       }
     }
   }

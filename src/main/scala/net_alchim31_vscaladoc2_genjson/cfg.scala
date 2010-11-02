@@ -50,7 +50,10 @@ class Cfg {
   var title : Option[String] = None
   var copyright : Option[String] = None
   var additionnalArgs : List[String] = Nil
-  var apidocdir : File = new File("./apidoc")
+  var apidocdir : File = new File(System.getProperty("user.home"), ".config/vscaladoc2/apis")
+
+  val timestamp = System.currentTimeMillis
+  def apidocdirTmp = new File(apidocdir, "tmp-" + timestamp)
 
   def sourcefiles : Seq[File] = sources.flatMap(_.files)
   def find(rpath : String) : Option[File] = sources.flatMap(_.find(rpath)).headOption
@@ -64,8 +67,10 @@ class Cfg {
       l += dependencies.map(_.file.getCanonicalPath).mkString(File.pathSeparator)
     }
 
+    val d = new File(apidocdirTmp, artifactId + "/" + version)
+    d.mkdirs()
     l += "-d"
-    l += apidocdir.getCanonicalPath
+    l += d.getCanonicalPath
 
     if (!sources.isEmpty) {
       l += "-sourcepath"
