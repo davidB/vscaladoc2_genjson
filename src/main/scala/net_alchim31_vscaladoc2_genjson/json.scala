@@ -64,7 +64,8 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
 
   type SplitStringWithRef = List[StringWithRef]
 
-  private val _encoding: String = "UTF-8"
+  private val _encoding = "UTF-8"
+  private val _extension = "_.json"
 
   /*universe.settings.outdir.value*/
   private val _siteRoot: JFile = cfg.apidocdirTmp
@@ -85,7 +86,7 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
           case tpl: DocTemplateEntity => {
             val groups = tpl.members.filter{x =>
               val notInherited = x.inheritedFrom.isEmpty || x.inheritedFrom.contains(tpl)
-            	x.isInstanceOf[DocTemplateEntity] || ( notInherited && !x.isInstanceOf[Constructor])
+                x.isInstanceOf[DocTemplateEntity] || ( notInherited && !x.isInstanceOf[Constructor])
             }.groupBy(x => uoaHelper(x))
             for ((uoa, ms) <- groups) {
               writeMembers(uoa, ms, written)
@@ -101,12 +102,12 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
     logger.info("generate artifact info... ")
     val f0 = writeArtifactVersionInfo()
     logger.info("generate code info... ")
-    val fn = writeMembers(uoaHelper(rootPackage), List(rootPackage), mutable.HashSet.empty[UriOfApi]).toSet.map { x : UriOfApi => uoaHelper.toRefPath(x) + ".json"}
+    val fn = writeMembers(uoaHelper(rootPackage), List(rootPackage), mutable.HashSet.empty[UriOfApi]).toSet.map { x : UriOfApi => uoaHelper.toRefPath(x) + _extension}
     logger.info("generate archive... ")
     val archive = new JFile(_siteRoot, cfg.artifactId + "-" + cfg.version + "-apidoc.jar")
     fs.jar(archive, _siteRoot, fn + f0)
     logger.info("move (overwrite) generated to %s ...", cfg.apidocdir)
-    commit(archive.getName, (cfg.artifactId + "/" + cfg.version), (cfg.artifactId + "/" + cfg.version + ".json"))
+    commit(archive.getName, (cfg.artifactId + "/" + cfg.version), (cfg.artifactId + "/" + cfg.version + _extension))
   }
 
   private def commit(filenames : String*) {
@@ -124,7 +125,7 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
   }
 
   def writeArtifactVersionInfo() : String = {
-	val b = cfg.artifactId + "/" + cfg.version + ".json"
+    val b = cfg.artifactId + "/" + cfg.version + _extension
     val f = new JFile(_siteRoot, b)
     f.getParentFile.mkdirs()
     val jg = _jacksonFactory.createJsonGenerator(f, JsonEncoding.UTF8);
@@ -155,8 +156,10 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
   def write(uoa: UriOfApi, v: List[MemberEntity]) {
     val rpath = uoaHelper.toRefPath(uoa)
     logger.debug("writing ", rpath)
-    val f = new JFile(_siteRoot, rpath + ".json")
-    f.getParentFile.mkdirs()
+    val f = new JFile(_siteRoot, rpath + _extension)
+    if (!f.getParentFile.isDirectory && !f.getParentFile.mkdirs()) {
+      logger.warn("can't create directory : %s", f.getParentFile)
+    }
     val jg = _jacksonFactory.createJsonGenerator(f, JsonEncoding.UTF8);
     jg.useDefaultPrettyPrinter() // enable indentation just to make debug/testing easier
     try {
@@ -283,8 +286,8 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
         b
       }
       l match {
-    	  case Nil => List(StringWithRef("( )", None))
-    	  case comma :: tail => StringWithRef("( ", None) +: tail :+ StringWithRef(" )", None)
+          case Nil => List(StringWithRef("( )", None))
+          case comma :: tail => StringWithRef("( ", None) +: tail :+ StringWithRef(" )", None)
       }
 
     }.flatten
@@ -343,11 +346,15 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
 
   def writeDocTemplateEntityData(v: DocTemplateEntity, jg: JsonGenerator) {
     writeMemberEntityData(v, jg)
-    v.inSource.foreach { s =>
-      jg.writeArrayFieldStart("sourceStartPoint")
-      jg.writeString(s._1.path)
-      jg.writeNumber(s._2)
-      jg.writeEndArray()
+    try {
+      v.inSource.foreach { s =>
+        jg.writeArrayFieldStart("sourceStartPoint")
+        jg.writeString(s._1.path)
+        jg.writeNumber(s._2)
+        jg.writeEndArray()
+      }
+    } catch {
+      case e => logger.warn("failed to extract sourceStartPoint : %s <= %s", v.qualifiedName, e.getClass.getName + " : " + e.getMessage) //ignore
     }
     writeFieldEntityList("subClassesK", v.subClasses, jg)
     //writeFieldEntityList("members", v.members, jg)
