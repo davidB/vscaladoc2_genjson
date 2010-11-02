@@ -67,7 +67,7 @@
     </repository>
   </repositories>
 -->
-<!-- 
+<!--
   <pluginRepositories>
     <pluginRepository>
       <id>mc-release</id>
@@ -120,7 +120,7 @@
       <plugin>
         <groupId>org.scala-tools</groupId>
         <artifactId>maven-scala-plugin</artifactId>
-        <version>2.14.1</version>
+        <version>2.14.2</version>
         <executions>
           <execution>
             <id>cmain</id>
@@ -210,25 +210,17 @@
               <artifactId>maven-project-info-reports-plugin</artifactId>
               <version>2.2</version>
             </plugin>
-            <!--plugin>
+            <plugin>
               <groupId>org.scala-tools</groupId>
               <artifactId>maven-scala-plugin</artifactId>
-              <version>2.14.1</version>
-              <executions>
-                <execution>
-                  <id>scaladoc</id>
-                  <goals>
-                    <goal>doc</goal>
-                  </goals>
-                </execution>
-              </executions>
+              <version>2.14.2</version>
               <configuration>
                 <jvmArgs>
                   <jvmArg>-Xms64m</jvmArg>
                   <jvmArg>-Xmx1024m</jvmArg>
                 </jvmArgs>
               </configuration>
-            </plugin-->
+            </plugin>
             <plugin>
               <artifactId>maven-changes-plugin</artifactId>
               <!--version>2.3</version-->
@@ -252,7 +244,7 @@
       <id>gh-pages</id>
       <activation>
         <file>
-          <exists>${gh-pages-dir}</exists>
+          <exists>${gh-pages-dir}/index.html</exists>
         </file>
       </activation>
       <distributionManagement>
@@ -329,13 +321,13 @@
                     ["${basedir}/../vscaladoc2_demoprj/src/main/scala"]
                   ]
                   }
-                  ]]>                
+                  ]]>
                 </echo>
                 <exec executable="${java.home}/bin/java" failonerror="true">
                   <arg value="-cp" />
                   <arg value="${runtime_classpath}" />
                   <arg value="-Xmx1024m" />
-                  <!-- 
+                  <!--
                   <arg value="-Xdebug" />
                   <arg value="-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005" />
                   -->
