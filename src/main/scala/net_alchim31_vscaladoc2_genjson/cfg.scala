@@ -18,6 +18,8 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import org.jsoup.safety.Whitelist
+import org.jsoup.Jsoup
 import net_alchim31_utils.FileSystemHelper
 import scala.collection.SortedSet
 import scala.collection.generic.SortedSetFactory
@@ -105,10 +107,22 @@ class CfgHelper(val fs : FileSystemHelper) {
           case x => println("unsupported field :" + x)
         }
       }
+      completeDescriptionWithOverview(b)
     } finally {
       jp.close()
     }
     b
+  }
+
+  private def completeDescriptionWithOverview(cfg : Cfg) {
+    val buf = new StringBuilder(cfg.description)
+    for (src <- cfg.sources) {
+      val ohtml = new File(src.dir, "overview.html")
+      if (ohtml.exists) {
+        buf.append(fs.toString(ohtml))
+      }
+    }
+    cfg.description = Jsoup.clean(buf.toString, Whitelist.relaxed())
   }
 
   private def parseDependencies(jp : JsonParser) : List[Dependency] = {
@@ -172,7 +186,7 @@ class Source(val dir : File, val fs : FileSystemHelper) {
   var excludes : List[String] = Nil
   def files : Seq[File] = fs.findFiles(dir, includes, excludes)
 
-  /** 
+  /**
    * search an existing file (ignore includes/excludes)
    */
   def find(rpath : String) : Option[File] = {

@@ -72,7 +72,7 @@ class FileSystemHelper {
     println("nb files found under ", root, b.size, includes, excludes)
     b
   }
-  
+
   def getExtension(fileName : String) : String = {
     val idx = fileName.lastIndexOf('.')
     var back = fileName.substring(idx + 1)
@@ -226,6 +226,23 @@ class FileSystemHelper {
       }
     }
     count
+  }
+
+  def toString(file : File) : String = toString(file, "UTF-8")
+
+  def toString(file : File, encoding : String) : String = toString(new FileInputStream(file), encoding)
+
+  def toString(stream : InputStream, encoding : String) : String = {
+    import java.io.InputStreamReader
+    using(new InputStreamReader(stream, encoding)) { in =>
+      toString(in)
+    }
+  }
+
+  def toString(in : Reader) : String = {
+    val out = new java.io.StringWriter()
+    copy(in, out)
+    out.toString()
   }
 
   def using[A, R <: Closeable](r : R)(f : R => A) : A = {
