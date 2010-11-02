@@ -350,7 +350,7 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
       jg.writeEndArray()
     }
     writeFieldEntityList("subClassesK", v.subClasses, jg)
-    writeFieldEntityList("members", v.members, jg)
+    //writeFieldEntityList("members", v.members, jg)
     writeFieldEntityList("templates", v.templates, jg)
     writeFieldEntityList("methods", v.methods, jg)
     writeFieldEntityList("values", v.values, jg)
