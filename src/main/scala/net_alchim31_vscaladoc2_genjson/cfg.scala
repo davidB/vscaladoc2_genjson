@@ -167,7 +167,8 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
             while (jp.nextToken() != JsonToken.END_ARRAY) {
               ls += jp.getText
             }
-            source.includes = ls.toList
+            source.excludes = ls.toList
+            jp.nextToken
           }
         }
         if (jp.getCurrentToken() != JsonToken.END_ARRAY) {
@@ -176,7 +177,8 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
             while (jp.nextToken() != JsonToken.END_ARRAY) {
               ls += jp.getText
             }
-            source.excludes = ls.toList
+            source.includes = ls.toList
+            jp.nextToken
           }
         }
         // ignore other value until end of array
