@@ -137,6 +137,7 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
       jg.writeStringField("version", cfg.version)
       jg.writeStringField("description", cfg.description)
       jg.writeStringField("logo", cfg.logo.getOrElse(""))
+      jg.writeStringField("license", cfg.logo.getOrElse(""))
       jg.writeArrayFieldStart("dependencies")
       for (dep <- cfg.dependencies) {
         jg.writeStartArray()

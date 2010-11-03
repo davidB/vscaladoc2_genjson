@@ -50,6 +50,7 @@ class Cfg {
   var sources : List[Source] = Nil
   var dependencies : List[Dependency] = Nil
   var logo : Option[String] = None
+  var license : Option[String] = None
   var additionnalArgs : List[String] = Nil
   var apidocdir : File = new File(System.getProperty("user.home"), ".config/vscaladoc2/apis")
 
@@ -106,6 +107,7 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
           case "version" => b.version = jp.getText
           case "description" => b.description = jp.getText
           case "logo" => b.logo = Some(Jsoup.clean(jp.getText, Whitelist.basicWithImages))
+          case "license" => b.license = Some(Jsoup.clean(jp.getText, Whitelist.basicWithImages))
           case "dependencies" if jp.getCurrentToken == JsonToken.START_ARRAY => b.dependencies = parseDependencies(jp)
           case "dependencies" => logger.warn("dependencies should be an array of array")
           case "sources" if jp.getCurrentToken == JsonToken.START_ARRAY => b.sources = parseSources(jp)

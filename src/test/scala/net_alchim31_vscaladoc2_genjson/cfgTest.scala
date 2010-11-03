@@ -46,6 +46,7 @@ class CfgTest {
     Assert.assertEquals("0.0.0", cfg.version)
     Assert.assertEquals("", cfg.description)
     Assert.assertEquals(None, cfg.logo)
+    Assert.assertEquals(None, cfg.license)
     Assert.assertEquals(Nil, cfg.sources)
     Assert.assertEquals(Nil, cfg.dependencies)
   }
@@ -58,7 +59,8 @@ class CfgTest {
               "version" : "0.1-SNAPSHOT",
               "groupId" : "my.groupId",
               "logo" : "<a href=\"http://mysite/\"><img src=\"http://mysite/logo.png\" alt=\"My Site\"/></a>",
-              "description" : "My <i>Description</i>"
+              "description" : "My <i>Description</i>",
+              "license" : "ASL 2.0"
             }
         """
     val cfg = new CfgHelper(logger, fs)(mini)
@@ -67,6 +69,7 @@ class CfgTest {
     Assert.assertEquals("0.1-SNAPSHOT", cfg.version)
     Assert.assertEquals("My <i>Description</i>", cfg.description)
     Assert.assertEquals(Some("""<a href="http://mysite/" rel="nofollow"><img src="http://mysite/logo.png" alt="My Site" /></a>"""), cfg.logo)
+    Assert.assertEquals(Some("ASL 2.0"), cfg.license)
   }
 
   @Test
