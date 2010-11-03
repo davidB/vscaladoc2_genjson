@@ -45,19 +45,25 @@ class UriOfApiHelper(val cfg: Cfg) {
 
   def toRefPath[T <: Entity](v: T): String = toRefPath(apply(v))
 
+  def findOwnerTypeEntity[T <: Entity](v: T): Option[TemplateEntity] = v match {
+    case t: TemplateEntity if t.isPackage => None
+    case t: TemplateEntity => Some(t)
+    case m: MemberEntity => findOwnerTypeEntity(m.inDefinitionTemplates.headOption.getOrElse(m.inTemplate))
+    case m => findOwnerTypeEntity(m.inTemplate)
+  }
+
   def findTypeEntity[T <: Entity](v: T): Option[TemplateEntity] = v match {
     case t: TemplateEntity if t.isPackage => None
     case t: TemplateEntity => Some(t)
-    case m: MemberEntity => findTypeEntity(m.inDefinitionTemplates.headOption.getOrElse(m.inTemplate))
     case m => findTypeEntity(m.inTemplate)
   }
 
   // TODO test with type in root/default package
-  def findPackageEntity[T <: Entity](v: Entity): Option[Package] = v match {
+  def findOwnerPackageEntity[T <: Entity](v: Entity): Option[Package] = v match {
     case x: Package => Some(x)
     case x: TemplateEntity if x.isRootPackage => None
-    case m: MemberEntity => findPackageEntity(m.inDefinitionTemplates.headOption.getOrElse(m.inTemplate))
-    case _ => findPackageEntity(v.inTemplate)
+    case m: MemberEntity => findOwnerPackageEntity(m.inDefinitionTemplates.headOption.getOrElse(m.inTemplate))
+    case _ => findOwnerPackageEntity(v.inTemplate)
   }
 
   def apply[T <: Entity](v: T): UriOfApi = {
@@ -66,7 +72,7 @@ class UriOfApiHelper(val cfg: Cfg) {
         var packageName: Option[String] = None
         var typeName: Option[String] = None
         var memberName: Option[String] = None
-
+        
         def findArtifactVersion(te: TemplateEntity): (Option[String], Option[String]) = te match {
           case t: NoDocTemplate => {
             cfg.dependencies.find(_.contains(packageName, typeName)).map { x =>
@@ -83,15 +89,15 @@ class UriOfApiHelper(val cfg: Cfg) {
           case t: DocTemplateEntity => _currentArtifact
         }
 
-        val typeEntity = findTypeEntity(v)
-        val packageEntity = findPackageEntity(v)
+        val typeEntity = findOwnerTypeEntity(v)
+        val packageEntity = findOwnerPackageEntity(typeEntity.getOrElse(v))
 
         packageName = packageEntity.map(_.qualifiedName)
         typeName = typeEntity.map { t =>
           t.qualifiedName.substring(packageName.map(_.length + 1).getOrElse(0)) //+ (if (t.isObject) "$object" else "")
         }
-        memberName = typeEntity.flatMap { t =>
-          (v.qualifiedName.length > t.qualifiedName.length) match {
+        memberName = findTypeEntity(v).flatMap { t =>
+          (t.qualifiedName.length < v.qualifiedName.length) match {
             case true => Some((if (t.isObject) "o$_" else "") + v.qualifiedName.substring(t.qualifiedName.length + 1))
             case false => None
           }
