@@ -111,6 +111,9 @@ class CommentPlus(private val fs : FileSystemHelper) {
     if (v.isInstanceOf[Package]) {
       val rpath = v.qualifiedName.replace('.', '/') + "/package.html"
       sources.flatMap(_.find(rpath)).foreach { f =>
+        if (sb.length != 0) {
+          sb.append("\n<hr/>\n")
+        }
         sb.append(fs.toString(f))
       }
     }

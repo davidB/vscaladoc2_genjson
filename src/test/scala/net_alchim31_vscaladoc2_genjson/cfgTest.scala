@@ -47,24 +47,37 @@ class CfgTest {
   }
 
   @Test
-  def parseDemo1() {
-    val txt = """
+  def parseInfoMini() {
+    val mini = """
+          {
+            }
+        """
+    val cfg = new CfgHelper(logger, fs)(mini)
+    Assert.assertEquals("", cfg.groupId)
+    Assert.assertEquals("undef", cfg.artifactId)
+    Assert.assertEquals("0.0.0", cfg.version)
+    Assert.assertEquals("", cfg.description)
+    Assert.assertEquals(None, cfg.logo)
+  }
+
+  @Test
+  def parseInfoMaxi() {
+    val mini = """
           {
               "artifactId" : "demo1",
               "version" : "0.1-SNAPSHOT",
-              "apidocdir" : "/xxx/work/oss/demo-1/target/site/scaladocs",
-              "dependencies" : [
-                ["/xxx/.m2/repository/org/scala-lang/scala-library/2.8.0/scala-library-2.8.0.jar", "scala-library", "2.8.0"]
-              ],
-              "sources" : [
-                ["/xxx/work/oss/demo-1/src/main/scala"]
-              ]
+              "groupId" : "my.groupId",
+              "logo" : "<a href=\"http://mysite/\"><img src=\"http://mysite/logo.png\" alt=\"My Site\"/></a>",
+              "description" : "My <i>Description</i>"
             }
         """
-    val cfg = new CfgHelper(logger, fs)(txt)
+    val cfg = new CfgHelper(logger, fs)(mini)
+    Assert.assertEquals("my.groupId", cfg.groupId)
     Assert.assertEquals("demo1", cfg.artifactId)
     Assert.assertEquals("0.1-SNAPSHOT", cfg.version)
-    Assert.assertEquals(new File("/xxx/work/oss/demo-1/target/site/scaladocs").getCanonicalFile, cfg.apidocdir)
+    Assert.assertEquals("My <i>Description</i>", cfg.description)
+    println(cfg.logo)
+    Assert.assertEquals(Some("""<a href="http://mysite/" rel="nofollow"><img src="http://mysite/logo.png" alt="My Site" /></a>"""), cfg.logo)
   }
 
   @Test

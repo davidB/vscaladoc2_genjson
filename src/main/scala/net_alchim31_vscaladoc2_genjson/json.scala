@@ -132,11 +132,11 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
     jg.useDefaultPrettyPrinter() // enable indentation just to make debug/testing easier
     try {
       jg.writeStartObject()
-      jg.writeStringField("title", cfg.title.getOrElse(""))
+      jg.writeStringField("groupId", cfg.groupId)
       jg.writeStringField("artifactId", cfg.artifactId)
       jg.writeStringField("version", cfg.version)
       jg.writeStringField("description", cfg.description)
-      jg.writeStringField("copyright", cfg.copyright.getOrElse(""))
+      jg.writeStringField("logo", cfg.logo.getOrElse(""))
       jg.writeArrayFieldStart("dependencies")
       for (dep <- cfg.dependencies) {
         jg.writeStartArray()

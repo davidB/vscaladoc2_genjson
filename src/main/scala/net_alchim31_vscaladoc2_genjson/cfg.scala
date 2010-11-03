@@ -43,13 +43,13 @@ import scala.reflect.NameTransformer
 
 
 class Cfg {
+  var groupId = ""
   var artifactId = "undef"
   var version = "0.0.0"
   var description = ""
   var sources : List[Source] = Nil
   var dependencies : List[Dependency] = Nil
-  var title : Option[String] = None
-  var copyright : Option[String] = None
+  var logo : Option[String] = None
   var additionnalArgs : List[String] = Nil
   var apidocdir : File = new File(System.getProperty("user.home"), ".config/vscaladoc2/apis")
 
@@ -101,11 +101,11 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
         jp.nextToken()
         fieldName match {
           case "loglevel" => logger.setLevel(jp.getText)
+          case "groupId" => b.groupId = jp.getText
           case "artifactId" => b.artifactId = jp.getText
           case "version" => b.version = jp.getText
           case "description" => b.description = jp.getText
-          case "title" => b.title = Some(jp.getText)
-          case "copyright" => b.copyright = Some(jp.getText)
+          case "logo" => b.logo = Some(Jsoup.clean(jp.getText, Whitelist.basicWithImages))
           case "dependencies" if jp.getCurrentToken == JsonToken.START_ARRAY => b.dependencies = parseDependencies(jp)
           case "dependencies" => logger.warn("dependencies should be an array of array")
           case "sources" if jp.getCurrentToken == JsonToken.START_ARRAY => b.sources = parseSources(jp)
@@ -126,6 +126,9 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
     for (src <- cfg.sources) {
       val ohtml = new File(src.dir, "overview.html")
       if (ohtml.exists) {
+        if (buf.length != 0) {
+          buf.append("\n<hr/>\n")
+        }
         buf.append(fs.toString(ohtml))
       }
     }
