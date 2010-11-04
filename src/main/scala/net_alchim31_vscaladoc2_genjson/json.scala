@@ -57,7 +57,7 @@ import java.io.{ File => JFile }
  *
  * @author David Bernard
  */
-class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper: HtmlHelper, val fs : FileSystemHelper, val commentPlus : CommentPlus) {
+class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper: HtmlHelper, val fs : FileSystemHelper) {
 
   case class StringWithRef(s : String, ref : Option[String])
   implicit def toStringWithRef(x : Tuple2[String, Option[String]]) = StringWithRef(x._1, x._2)
@@ -327,14 +327,36 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
     jg.writeStringField("name", v.name)
     jg.writeStringField("qualifiedName", v.qualifiedName)
     //jg.writeStringField("definitionName", v.definitionName)
-    jg.writeStringField("description", commentPlus.findAllDescription(cfg.sources, v, htmlHelper.commentToHtml(v.comment).toString))
-//    v.comment.foreach { x =>
+    jg.writeStringField("description", htmlHelper.findAllDescription(cfg.sources, v, htmlHelper.commentToHtml(v.comment).toString))
+    v.comment.foreach { x =>
+      x match {
+        case c : MyComment => {
+          val tags = c.docTags
+          if (!tags.isEmpty) {
+            jg.writeFieldName("docTags")
+            jg.writeStartArray()
+            for (tag <- tags) {
+              jg.writeStartArray()
+              jg.writeString(tag._1)
+              jg.writeStartArray()
+              for (body <- tag._2) {
+                jg.writeString(body)
+              }
+              jg.writeEndArray()
+              tag._3.foreach{ x => jg.writeString(x) }
+              jg.writeEndArray()
+            }
+            jg.writeEndArray()
+          }
+        }
+        case _ => ()//TODO
+      }
+    }
 //      val comments =
 //      val sb = new StringBuilder
 //      jg.writeFieldName("docTags")
 //      jg.writeStartArray()
 //      // TODO extracts tags
-//      jg.writeEndArray()
 //    }
     jg.writeStringField("flags", v.visibility.toString)
     v.deprecation.foreach { x => jg.writeStringField("deprecation", htmlHelper.bodyToHtml(x).toString) }

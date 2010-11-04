@@ -23,8 +23,13 @@ import scala.tools.nsc.doc.model.MemberEntity
 import scala.tools.nsc.doc.model.Package
 
 import scala.xml.NodeSeq
-// copy from scala.tools.nsc.doc.html.HtmlPage
-class HtmlHelper(val uoaHelper : UriOfApiHelper) {
+/**
+ * copy from scala.tools.nsc.doc.html.HtmlPage
+ * + some additionnal methods
+ * @author david.bernard
+ *
+ */
+class HtmlHelper(val uoaHelper : UriOfApiHelper, private val fs : FileSystemHelper) {
   import scala.tools.nsc.doc.model.comment._
 
   /**
@@ -86,18 +91,6 @@ class HtmlHelper(val uoaHelper : UriOfApiHelper) {
      case Summary(in) => inlineToHtml(in)
      case HtmlTag(tag) => xml.Unparsed(tag)
    }
-}
-
-/**
- * A helper class use to group methods used as workaround about some extra comments extraction (not provided by regular Scaladoc2)
- *
- * @author david.bernard
- *
- */
-class CommentPlus(private val fs : FileSystemHelper) {
-
-  import org.jsoup.safety.Whitelist
-  import org.jsoup.Jsoup
 
   /**
    * Workaround method use to append comments not extracted by regular Scaladoc2
@@ -107,6 +100,9 @@ class CommentPlus(private val fs : FileSystemHelper) {
    * @return
    */
   def findAllDescription(sources : List[Source], v : MemberEntity, alreadyExtracted : String) : String = {
+    import org.jsoup.safety.Whitelist
+    import org.jsoup.Jsoup
+    
     val sb = new StringBuilder(alreadyExtracted)
     if (v.isInstanceOf[Package]) {
       val rpath = v.qualifiedName.replace('.', '/') + "/package.html"
@@ -120,3 +116,4 @@ class CommentPlus(private val fs : FileSystemHelper) {
     Jsoup.clean(sb.toString, Whitelist.relaxed())
   }
 }
+

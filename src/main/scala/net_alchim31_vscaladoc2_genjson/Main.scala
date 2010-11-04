@@ -127,14 +127,14 @@ class MyDocFactory(logger : MiniLogger, reporter : Reporter, settings : doc.Sett
     (new compiler.Run()) compile files
     compiler.addSourceless
     if (!reporter.hasErrors) {
-      val modelFactory = (new model.ModelFactory(compiler, settings) with model.comment.CommentFactory)
+      val modelFactory = (new model.ModelFactory(compiler, settings) with MyCommentFactory)
       val docModel = modelFactory.makeModel
       logger.info("... model contains %s  documentable top entity", modelFactory.templatesCount)
       logger.info("generating json into %s ...", cfg.apidocdir)
       val uoaHelper = new UriOfApiHelper(cfg)
-      val htmlHelper = new HtmlHelper(uoaHelper)
+      val htmlHelper = new HtmlHelper(uoaHelper, fs)
       //(new html.HtmlFactory(docModel)).generate
-      new JsonDocFactory(logger, cfg, uoaHelper, htmlHelper, fs, new CommentPlus(fs)).generate(docModel.rootPackage)
+      new JsonDocFactory(logger, cfg, uoaHelper, htmlHelper, fs).generate(docModel.rootPackage)
       logger.info("...DONE")
     } else {
       logger.error("...failed")
