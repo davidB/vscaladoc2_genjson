@@ -49,6 +49,7 @@ class Cfg {
   var description = ""
   var sources : List[Source] = Nil
   var dependencies : List[Dependency] = Nil
+  var artifacts : List[Artifact] = Nil
   var logo : Option[String] = None
   var license : Option[String] = None
   var additionnalArgs : List[String] = Nil
@@ -112,7 +113,11 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
           case "dependencies" => logger.warn("dependencies should be an array of array")
           case "sources" if jp.getCurrentToken == JsonToken.START_ARRAY => b.sources = parseSources(jp)
           case "sources" => logger.warn("sources should be an array of array")
+          case "artifacts" if jp.getCurrentToken == JsonToken.START_ARRAY => b.artifacts = parseArtifacts(jp)
+          case "artifacts" => logger.warn("artifacts should be an array of array")
           case "apidocdir" => b.apidocdir = new File(jp.getText).getCanonicalFile
+          case "additionnalArgs" if jp.getCurrentToken == JsonToken.START_ARRAY => b.additionnalArgs = parseAdditionnalArgs(jp)
+          case "additionnalArgs" => logger.warn("artifacts should be an array of array")
           case x => logger.warn("unsupported field :" + x)
         }
       }
@@ -155,7 +160,7 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
     }
     l.toList
   }
-
+  
   private def parseSources(jp : JsonParser) : List[Source] = {
     val l = new ListBuffer[Source]()
     while (jp.nextToken() != JsonToken.END_ARRAY) {
@@ -193,6 +198,28 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
     }
     l.toList
   }
+
+  private def parseArtifacts(jp : JsonParser) : List[Artifact] = {
+    val l = new ListBuffer[Artifact]()
+    while (jp.nextToken() != JsonToken.END_ARRAY) {
+      if (jp.getCurrentToken == JsonToken.START_ARRAY) {
+        jp.nextToken
+        val artifact = Artifact(jp.getText, { jp.nextToken; jp.getText })
+        // ignore other value until end of array
+        while (jp.nextToken() != JsonToken.END_ARRAY) {}
+        l += artifact
+      }
+    }
+    l.toList
+  }
+  
+  private def parseAdditionnalArgs(jp : JsonParser) : List[String] = {
+    val l = new ListBuffer[String]()
+    while (jp.nextToken() != JsonToken.END_ARRAY) {
+      l += jp.getText
+    }
+    l.toList
+  }
 }
 
 class Source(val dir : File, val fs : FileSystemHelper) {
@@ -211,6 +238,8 @@ class Source(val dir : File, val fs : FileSystemHelper) {
     }
   }
 }
+
+case class Artifact(artifactId : String, version : String)
 
 case class Dependency(file : File, artifactId : String, version : String) {
   private lazy val _jarEntries : SortedSet[String] = {

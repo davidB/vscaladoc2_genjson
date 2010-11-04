@@ -97,17 +97,33 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
       }
       written
     }
+    val f0 = generateFirstStep()
+    logger.info("generate code info... ")
+    val fn = writeMembers(uoaHelper(rootPackage), List(rootPackage), mutable.HashSet.empty[UriOfApi]).toSet.map { x : UriOfApi => uoaHelper.toRefPath(x) + _extension}
+    generateLastStep(fn + f0)
+  }
+
+  private def generateFirstStep() : String = {
     logger.info("generate to %s", _siteRoot)
     _siteRoot.mkdirs()
     logger.info("generate artifact info... ")
-    val f0 = writeArtifactVersionInfo()
-    logger.info("generate code info... ")
-    val fn = writeMembers(uoaHelper(rootPackage), List(rootPackage), mutable.HashSet.empty[UriOfApi]).toSet.map { x : UriOfApi => uoaHelper.toRefPath(x) + _extension}
+    writeArtifactVersionInfo()
+  }
+  
+  private def generateLastStep(rpaths : Set[String]) {
     logger.info("generate archive... ")
     val archive = new JFile(_siteRoot, cfg.artifactId + "-" + cfg.version + "-apidoc.jar")
-    fs.jar(archive, _siteRoot, fn + f0)
+    fs.jar(archive, _siteRoot, rpaths)
     logger.info("move (overwrite) generated to %s ...", cfg.apidocdir)
     commit(archive.getName, (cfg.artifactId + "/" + cfg.version), (cfg.artifactId + "/" + cfg.version + _extension))
+  }
+
+  /**
+   * generate only info from cfg
+   */
+  def generate(): Unit = {
+    val f0 = generateFirstStep()
+    generateLastStep(Set(f0))
   }
 
   private def commit(filenames : String*) {
@@ -143,6 +159,14 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
         jg.writeStartArray()
         jg.writeString(dep.artifactId)
         jg.writeString(dep.version)
+        jg.writeEndArray()
+      }
+      jg.writeEndArray()
+      jg.writeArrayFieldStart("artifacts")
+      for (artifact <- cfg.artifacts) {
+        jg.writeStartArray()
+        jg.writeString(artifact.artifactId)
+        jg.writeString(artifact.version)
         jg.writeEndArray()
       }
       jg.writeEndArray()

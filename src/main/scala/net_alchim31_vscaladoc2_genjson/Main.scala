@@ -116,6 +116,8 @@ object Main {
 }
 
 class MyDocFactory(logger : MiniLogger, reporter : Reporter, settings : doc.Settings, cfg : Cfg, val fs : FileSystemHelper) extends DocFactory(reporter, settings) {
+  lazy val _uoaHelper = new UriOfApiHelper(cfg)
+  lazy val _htmlHelper = new HtmlHelper(_uoaHelper, fs)
 
   /**
    * Creates a scaladoc site for all symbols defined in this call's `files`, as well as those defined in `files` of
@@ -123,21 +125,25 @@ class MyDocFactory(logger : MiniLogger, reporter : Reporter, settings : doc.Sett
    * @param files The list of paths (relative to the compiler's source path, or absolute) of files to document.
    */
   override def document(files : List[String]) : Unit = {
-    logger.info("analyzing sources...")
-    (new compiler.Run()) compile files
-    compiler.addSourceless
-    if (!reporter.hasErrors) {
-      val modelFactory = (new model.ModelFactory(compiler, settings) with MyCommentFactory)
-      val docModel = modelFactory.makeModel
-      logger.info("... model contains %s  documentable top entity", modelFactory.templatesCount)
-      logger.info("generating json into %s ...", cfg.apidocdir)
-      val uoaHelper = new UriOfApiHelper(cfg)
-      val htmlHelper = new HtmlHelper(uoaHelper, fs)
-      //(new html.HtmlFactory(docModel)).generate
-      new JsonDocFactory(logger, cfg, uoaHelper, htmlHelper, fs).generate(docModel.rootPackage)
-      logger.info("...DONE")
+    if (!files.isEmpty) {
+      logger.info("analyzing sources...")
+      (new compiler.Run()) compile files
+      compiler.addSourceless
+      if (!reporter.hasErrors) {
+        val modelFactory = (new model.ModelFactory(compiler, settings) with MyCommentFactory)
+        val docModel = modelFactory.makeModel
+        logger.info("... model contains %s  documentable top entity", modelFactory.templatesCount)
+        logger.info("generating json into %s ...", cfg.apidocdir)
+        //(new html.HtmlFactory(docModel)).generate
+        new JsonDocFactory(logger, cfg, _uoaHelper, _htmlHelper, fs).generate(docModel.rootPackage)
+        logger.info("...DONE")
+      } else {
+        logger.error("...failed")
+      }
+    } else if (!cfg.artifacts.isEmpty) {
+      new JsonDocFactory(logger, cfg, _uoaHelper, _htmlHelper, fs).generate()
     } else {
-      logger.error("...failed")
+      logger.warn("no sources files and no artifacts selected, please check your configuration")
     }
   }
 }
