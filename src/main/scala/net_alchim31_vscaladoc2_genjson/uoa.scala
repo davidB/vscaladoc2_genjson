@@ -31,11 +31,12 @@ case class UriOfApi(val artifactId: String, val version: String, val packageName
 class UriOfApiHelper(val cfg: Cfg) {
   def encode(v: String) = NameTransformer.encode(v).replace("$u002E", ".")
 
-  private val _currentArtifact = (Some(cfg.artifactId), Some(cfg.version))
   private val _cache = new scala.collection.mutable.HashMap[Entity, UriOfApi]()
-  private lazy val _scalaLib = cfg.dependencies.find(x => x.artifactId == "scala-library" || x.file.getName.startsWith("scala-library"))
-  private val _jseAV = (Some("jse"), Some(System.getProperty("java.version")))
-
+  private lazy val _scalaLib = cfg.dependencies.find(x => x.artifact.artifactId == "scala-library" || x.file.getName.startsWith("scala-library"))
+  private val _currentArtifact = Artifact(cfg.artifactId, cfg.version)
+  private val _jseArtifact = Artifact("jse", System.getProperty("java.version"))
+  private val _undefArtifact = Artifact()
+  
   def toRefPath(uoa : UriOfApi): String = {
     uoa.artifactId + "/" + uoa.version + "/" +
     uoa.packageName +
@@ -73,17 +74,17 @@ class UriOfApiHelper(val cfg: Cfg) {
         var typeName: Option[String] = None
         var memberName: Option[String] = None
         
-        def findArtifactVersion(te: TemplateEntity): (Option[String], Option[String]) = te match {
+        def findArtifact(te: TemplateEntity): Artifact = te match {
           case t: NoDocTemplate => {
             cfg.dependencies.find(_.contains(packageName, typeName)).map { x =>
-              (Some(x.artifactId), Some(x.version))
+              x.artifact
             } orElse {
               // for performance should be done first, but several artifact (have scala.* package) : scala-compiler,...
-              for (p <- packageName; if (p + ".").startsWith("scala."); dep <- _scalaLib) yield (Some(dep.artifactId), Some(dep.version))
+              for (p <- packageName; if (p + ".").startsWith("scala."); dep <- _scalaLib) yield dep.artifact
             } orElse {
-              for (p <- packageName; if p.startsWith("java.") || p.startsWith("javax.")) yield _jseAV
+              for (p <- packageName; if p.startsWith("java.") || p.startsWith("javax.")) yield _jseArtifact
             } getOrElse {
-              (None, None)
+              _undefArtifact
             }
           }
           case t: DocTemplateEntity => _currentArtifact
@@ -102,10 +103,10 @@ class UriOfApiHelper(val cfg: Cfg) {
             case false => None
           }
         }
-        val (artifactId, version) = typeEntity.orElse(packageEntity).map(t => findArtifactVersion(t)).getOrElse((None, None))
+        val artifact = typeEntity.orElse(packageEntity).map(t => findArtifact(t)).getOrElse(_undefArtifact)
         UriOfApi(
-          artifactId.getOrElse("undef"),
-          version.getOrElse("0.0.0"),
+          artifact.artifactId,
+          artifact.version,
           packageName.getOrElse("_root_"),
           typeName,
           memberName)

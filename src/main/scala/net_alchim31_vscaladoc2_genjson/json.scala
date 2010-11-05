@@ -151,23 +151,18 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
       jg.writeStringField("groupId", cfg.groupId)
       jg.writeStringField("artifactId", cfg.artifactId)
       jg.writeStringField("version", cfg.version)
+      jg.writeStringField("kind", cfg.kind.getOrElse(""))
       jg.writeStringField("description", cfg.description)
       jg.writeStringField("logo", cfg.logo.getOrElse(""))
       jg.writeStringField("license", cfg.license.getOrElse(""))
       jg.writeArrayFieldStart("dependencies")
-      for (dep <- cfg.dependencies) {
-        jg.writeStartArray()
-        jg.writeString(dep.artifactId)
-        jg.writeString(dep.version)
-        jg.writeEndArray()
+      for (artifact <- cfg.dependencies.map(_.artifact)) {
+        jg.writeString(artifact.artifactId + "/" +artifact.version)
       }
       jg.writeEndArray()
       jg.writeArrayFieldStart("artifacts")
       for (artifact <- cfg.artifacts) {
-        jg.writeStartArray()
-        jg.writeString(artifact.artifactId)
-        jg.writeString(artifact.version)
-        jg.writeEndArray()
+        jg.writeString(artifact.artifactId + "/" + artifact.version)
       }
       jg.writeEndArray()
       jg.writeEndObject()

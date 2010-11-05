@@ -50,6 +50,7 @@ class Cfg {
   var sources : List[Source] = Nil
   var dependencies : List[Dependency] = Nil
   var artifacts : List[Artifact] = Nil
+  var kind : Option[String] = None
   var logo : Option[String] = None
   var license : Option[String] = None
   var additionnalArgs : List[String] = Nil
@@ -107,6 +108,7 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
           case "artifactId" => b.artifactId = jp.getText
           case "version" => b.version = jp.getText
           case "description" => b.description = jp.getText
+          case "kind" => b.logo = Some(jp.getText)
           case "logo" => b.logo = Some(Jsoup.clean(jp.getText, Whitelist.basicWithImages))
           case "license" => b.license = Some(Jsoup.clean(jp.getText, Whitelist.basicWithImages))
           case "dependencies" if jp.getCurrentToken == JsonToken.START_ARRAY => b.dependencies = parseDependencies(jp)
@@ -147,15 +149,9 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
     while (jp.nextToken() != JsonToken.END_ARRAY) {
       if (jp.getCurrentToken == JsonToken.START_ARRAY) {
         jp.nextToken
-        val depPath = new File(jp.getText)
-        jp.nextToken
-        val dep = (jp.getCurrentToken == JsonToken.END_ARRAY) match {
-          case true => Dependency(depPath, depPath.getName, "0.0.1") // TODO extract artifactId + version from filename
-          case false => Dependency(depPath, jp.getText, { jp.nextToken; jp.getText })
-        }
+        l += Dependency(new File(jp.getText), parseArtifact( {jp.nextToken; jp.getText}))
         // ignore other value until end of array
         while (jp.nextToken() != JsonToken.END_ARRAY) {}
-        l += dep
       }
     }
     l.toList
@@ -199,16 +195,18 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
     l.toList
   }
 
+  private def parseArtifact(s : String) : Artifact = {
+    s.split("/").toList match {
+      case name :: version :: _ => Artifact(name, version)
+      case name :: Nil => Artifact(name, "0.0.0")
+      case _ => Artifact("undef" , "0.0.0")
+    }
+  }
+  
   private def parseArtifacts(jp : JsonParser) : List[Artifact] = {
     val l = new ListBuffer[Artifact]()
     while (jp.nextToken() != JsonToken.END_ARRAY) {
-      if (jp.getCurrentToken == JsonToken.START_ARRAY) {
-        jp.nextToken
-        val artifact = Artifact(jp.getText, { jp.nextToken; jp.getText })
-        // ignore other value until end of array
-        while (jp.nextToken() != JsonToken.END_ARRAY) {}
-        l += artifact
-      }
+      l += parseArtifact(jp.getText)
     }
     l.toList
   }
@@ -239,9 +237,9 @@ class Source(val dir : File, val fs : FileSystemHelper) {
   }
 }
 
-case class Artifact(artifactId : String, version : String)
+case class Artifact(artifactId : String = "undef", version : String = "0.0.0")
 
-case class Dependency(file : File, artifactId : String, version : String) {
+case class Dependency(file : File, artifact : Artifact) {
   private lazy val _jarEntries : SortedSet[String] = {
     val jarFile = new JarInputStream(new FileInputStream(file))
     try {
