@@ -54,6 +54,7 @@ class Cfg {
   var logo : Option[String] = None
   var license : Option[String] = None
   var additionnalArgs : List[String] = Nil
+  var tags : Option[String] = None
   var apidocdir : File = new File(System.getProperty("user.home"), ".config/vscaladoc2/apis")
 
   val timestamp = System.currentTimeMillis
@@ -108,6 +109,7 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
           case "artifactId" => b.artifactId = jp.getText
           case "version" => b.version = jp.getText
           case "description" => b.description = jp.getText
+          case "tags" => b.tags = Some(jp.getText)
           case "kind" => b.logo = Some(jp.getText)
           case "logo" => b.logo = Some(Jsoup.clean(jp.getText, Whitelist.basicWithImages))
           case "license" => b.license = Some(Jsoup.clean(jp.getText, Whitelist.basicWithImages))

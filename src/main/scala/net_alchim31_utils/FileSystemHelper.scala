@@ -122,6 +122,25 @@ class FileSystemHelper(logger : MiniLogger) {
     move(tmpfile, dest)
   }
 
+  def jar0gz(dest : File, dir : File, paths : Set[String]) {
+    import java.util.jar.{JarOutputStream, JarEntry}
+
+    val tmpFileSuffix = ".part-" + java.lang.Long.toHexString(System.nanoTime())
+    val tmpfile = new File(dest.getAbsolutePath + tmpFileSuffix)
+    dest.getParentFile.mkdirs()
+    using(new JarOutputStream(new GZIPOutputStream(new FileOutputStream(tmpfile)))){ os =>
+      os.setLevel(0) //STORE only
+      paths.foreach { path =>
+        using(new FileInputStream(new File(dir, path))) {is =>
+          val entry = new JarEntry(path)
+          os.putNextEntry(entry)
+          copy(is, os)
+        }
+      }
+    }
+    move(tmpfile, dest)
+  }
+  
   def move(src : File, dest : File) {
     if (src.equals(dest)) return
     if (!src.exists) {

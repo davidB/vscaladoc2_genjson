@@ -113,8 +113,8 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
   
   private def generateLastStep(rpaths : Set[String]) {
     logger.info("generate archive... ")
-    val archive = new JFile(_siteRoot, cfg.artifactId + "-" + cfg.version + "-apidoc.jar")
-    fs.jar(archive, _siteRoot, rpaths)
+    val archive = new JFile(_siteRoot, cfg.artifactId + "-" + cfg.version + "-apidoc.jar.gz")
+    fs.jar0gz(archive, _siteRoot, rpaths)
     logger.info("move (overwrite) generated to %s ...", cfg.apidocdir)
     commit(archive.getName, (cfg.artifactId + "/" + cfg.version), (cfg.artifactId + "/" + cfg.version + _extension))
   }
@@ -153,6 +153,7 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
       jg.writeStringField("artifactId", cfg.artifactId)
       jg.writeStringField("version", cfg.version)
       jg.writeStringField("kind", cfg.kind.getOrElse(""))
+      jg.writeStringField("tags", cfg.tags.getOrElse(""))
       jg.writeStringField("description", cfg.description)
       jg.writeStringField("logo", cfg.logo.getOrElse(""))
       jg.writeStringField("license", cfg.license.getOrElse(""))
