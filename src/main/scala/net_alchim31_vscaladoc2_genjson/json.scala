@@ -18,6 +18,7 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import scala.tools.nsc.doc.model.comment.Comment
 import org.jsoup.safety.Whitelist
 import org.jsoup.Jsoup
 import net_alchim31_utils.MiniLogger
@@ -342,41 +343,40 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
   //    myXml
   //  }
 
+  def writeDocTags(v : Option[Comment], jg : JsonGenerator) {
+   v.foreach { x =>
+      x match {
+        case c : MyComment => writeDocTags(c.docTags, jg)
+        case _ => ()//TODO ??
+      }
+    }
+  }
+  def writeDocTags(tags : Iterable[(String, List[String], Option[String])], jg: JsonGenerator) {
+    if (!tags.isEmpty) {
+      jg.writeFieldName("docTags")
+      jg.writeStartArray()
+      for (tag <- tags) {
+        jg.writeStartObject()
+        jg.writeStringField("k", tag._1) //keyname
+        jg.writeFieldName("b") // bodies
+        jg.writeStartArray()
+        for (body <- tag._2) {
+          jg.writeString(body)
+        }
+        jg.writeEndArray()
+        tag._3.foreach{ x => jg.writeStringField("v", x) } // variant
+        jg.writeEndObject()
+      }
+      jg.writeEndArray()
+    }
+  }
+  
   def writeMemberEntityData(v: MemberEntity, jg: JsonGenerator) {
     jg.writeStringField("name", v.name)
     jg.writeStringField("qualifiedName", v.qualifiedName)
     //jg.writeStringField("definitionName", v.definitionName)
     jg.writeStringField("description", htmlHelper.findAllDescription(cfg.sources, v, htmlHelper.commentToHtml(v.comment).toString))
-    v.comment.foreach { x =>
-      x match {
-        case c : MyComment => {
-          val tags = c.docTags
-          if (!tags.isEmpty) {
-            jg.writeFieldName("docTags")
-            jg.writeStartArray()
-            for (tag <- tags) {
-              jg.writeStartArray()
-              jg.writeString(tag._1)
-              jg.writeStartArray()
-              for (body <- tag._2) {
-                jg.writeString(body)
-              }
-              jg.writeEndArray()
-              tag._3.foreach{ x => jg.writeString(x) }
-              jg.writeEndArray()
-            }
-            jg.writeEndArray()
-          }
-        }
-        case _ => ()//TODO
-      }
-    }
-//      val comments =
-//      val sb = new StringBuilder
-//      jg.writeFieldName("docTags")
-//      jg.writeStartArray()
-//      // TODO extracts tags
-//    }
+    writeDocTags(v.comment, jg)
     jg.writeStringField("flags", v.visibility.toString)
     v.deprecation.foreach { x => jg.writeStringField("deprecation", htmlHelper.bodyToHtml(x).toString) }
     writeFieldEntityList("inheritedFrom", v.inheritedFrom, jg)
