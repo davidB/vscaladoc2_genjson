@@ -377,9 +377,9 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
     //jg.writeStringField("definitionName", v.definitionName)
     jg.writeStringField("description", htmlHelper.findAllDescription(cfg.sources, v, htmlHelper.commentToHtml(v.comment).toString))
     writeDocTags(v.comment, jg)
-    jg.writeStringField("flags", v.visibility.toString)
+    //jg.writeStringField("flags", v.visibility.toString)
     v.deprecation.foreach { x => jg.writeStringField("deprecation", htmlHelper.bodyToHtml(x).toString) }
-    writeFieldEntityList("inheritedFrom", v.inheritedFrom, jg)
+    //writeFieldEntityList("inheritedFrom", v.inheritedFrom, jg)
     writeSplitStringWithRef(Some("visibility"), visibilityToSplitStringWithRef(v), jg)
     writeSplitStringWithRef(Some("resultType"), tentityToSplitStringWithRef(v.resultType), jg)
   }

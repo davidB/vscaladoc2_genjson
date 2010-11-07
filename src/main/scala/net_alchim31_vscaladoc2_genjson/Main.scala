@@ -126,7 +126,7 @@ class MyDocFactory(logger : MiniLogger, reporter : Reporter, settings : doc.Sett
    */
   override def document(files : List[String]) : Unit = {
     if (!files.isEmpty) {
-      logger.info("analyzing sources...")
+      logger.info("analyzing sources (via scalac) ...")
       (new compiler.Run()) compile files
       compiler.addSourceless
       if (!reporter.hasErrors) {
