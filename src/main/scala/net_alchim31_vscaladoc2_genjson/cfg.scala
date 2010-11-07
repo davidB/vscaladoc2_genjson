@@ -110,7 +110,7 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
           case "version" => b.version = jp.getText
           case "description" => b.description = jp.getText
           case "tags" => b.tags = Some(jp.getText)
-          case "kind" => b.logo = Some(jp.getText)
+          case "kind" => b.kind = Some(jp.getText)
           case "logo" => b.logo = Some(Jsoup.clean(jp.getText, Whitelist.basicWithImages))
           case "license" => b.license = Some(Jsoup.clean(jp.getText, Whitelist.basicWithImages))
           case "dependencies" if jp.getCurrentToken == JsonToken.START_ARRAY => b.dependencies = parseDependencies(jp)
