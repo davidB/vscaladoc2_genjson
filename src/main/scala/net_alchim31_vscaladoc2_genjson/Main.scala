@@ -128,7 +128,9 @@ class MyDocFactory(logger : MiniLogger, reporter : Reporter, settings : doc.Sett
     if (!files.isEmpty) {
       logger.info("analyzing sources (via scalac) ...")
       (new compiler.Run()) compile files
-      compiler.addSourceless
+      if (cfg.artifactId  == "scala-library") {
+        compiler.addSourceless
+      }
       if (!reporter.hasErrors) {
         val modelFactory = (new model.ModelFactory(compiler, settings) with MyCommentFactory)
         val docModel = modelFactory.makeModel
