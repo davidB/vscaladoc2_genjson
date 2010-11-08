@@ -57,6 +57,7 @@ import java.io.{ File => JFile }
  * A class that can generate api as json files to some fixed root folder.
  *
  * @author David Bernard
+ * @todo generate documentation for sub class, and sub trait
  */
 class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfApiHelper, val htmlHelper: HtmlHelper, val fs : FileSystemHelper) {
 
@@ -113,10 +114,11 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
   
   private def generateLastStep(rpaths : Set[String]) {
     logger.info("generate archive... ")
-    val archive = new JFile(_siteRoot, cfg.artifactId + "-" + cfg.version + "-apidoc.jar.gz")
+    val archiveRPath = cfg.artifactId + "/" + cfg.version + "-apidoc.jar.gz"
+    val archive = new JFile(_siteRoot, archiveRPath)
     fs.jar0gz(archive, _siteRoot, rpaths)
     logger.info("move (overwrite) generated to %s ...", cfg.apidocdir)
-    commit(archive.getName, (cfg.artifactId + "/" + cfg.version), (cfg.artifactId + "/" + cfg.version + _extension))
+    commit(archiveRPath, (cfg.artifactId + "/" + cfg.version), (cfg.artifactId + "/" + cfg.version + _extension))
   }
 
   /**
