@@ -18,6 +18,7 @@
 
 package net_alchim31_vscaladoc2_genjson
 
+import scala.tools.nsc.doc.model.comment.Body
 import scala.tools.nsc.doc.model.comment.Comment
 import org.jsoup.safety.Whitelist
 import org.jsoup.Jsoup
@@ -346,14 +347,19 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
   //    myXml
   //  }
 
-  def writeDocTags(v : Option[Comment], jg : JsonGenerator) {
-   v.foreach { x =>
+  def writeDocTags(v : Option[Comment], deprecated : Option[Body], jg : JsonGenerator) {
+   var docTags : Iterable[(String, List[String], Option[String])] =  v.map { x =>
       x match {
-        case c : MyComment => writeDocTags(c.docTags, jg)
-        case _ => ()//TODO ??
+        case c : MyComment => c.docTags 
+        case _ => Nil
       }
+    }.getOrElse(Nil)
+    if (!deprecated.isEmpty && !docTags.exists(_._1 == "deprecated")) {
+      docTags = docTags ++ deprecated.toList.map { x => ("deprecated", List(htmlHelper.bodyToHtml(x).toString), None) }
     }
+    writeDocTags(docTags, jg)
   }
+  
   def writeDocTags(tags : Iterable[(String, List[String], Option[String])], jg: JsonGenerator) {
     if (!tags.isEmpty) {
       jg.writeFieldName("docTags")
@@ -379,9 +385,8 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
     jg.writeStringField("qualifiedName", v.qualifiedName)
     //jg.writeStringField("definitionName", v.definitionName)
     jg.writeStringField("description", htmlHelper.findAllDescription(cfg.sources, v, htmlHelper.commentToHtml(v.comment).toString))
-    writeDocTags(v.comment, jg)
+    writeDocTags(v.comment, v.deprecation, jg)
     //jg.writeStringField("flags", v.visibility.toString)
-    v.deprecation.foreach { x => jg.writeStringField("deprecation", htmlHelper.bodyToHtml(x).toString) }
     //writeFieldEntityList("inheritedFrom", v.inheritedFrom, jg)
     writeSplitStringWithRef(Some("visibility"), visibilityToSplitStringWithRef(v), jg)
     writeSplitStringWithRef(Some("resultType"), tentityToSplitStringWithRef(v.resultType), jg)
