@@ -37,7 +37,7 @@ class FileSystemHelper(logger : MiniLogger) {
 //    tmpFile
 //  }
 
-    def findFiles(root : File, includes : List[String] = Nil, excludes : List[String] = Nil) : List[File] = {
+  def scan[T](root : File, includes : List[String] = Nil, excludes : List[String] = Nil)(f : (File, String, File) => Option[T]) : List[T] = {
     val excludesP = excludes.map(Regexps.globToRegexPattern)
     val includesP = includes.map(Regexps.globToRegexPattern)
 
@@ -52,16 +52,19 @@ class FileSystemHelper(logger : MiniLogger) {
         b
     }
 
-    def findFiles(rootDir : File, rpath : String) : List[File] = {
+    def scanFiles(rootDir : File, rpath : String) : List[T] = {
       val dir = new File(rootDir, rpath)
-      var back : List[File] = Nil
+      var back : List[T] = Nil
       for (child <- dir.listFiles(); if !child.isHidden && child.canRead) {
         val rpathChild = rpath + "/" + child.getName
         if (child.isDirectory) {
-          back = findFiles(rootDir, rpathChild) ::: back
+          back = scanFiles(rootDir, rpathChild) ::: back
         } else {
           accept(child, rpathChild) match {
-            case true => back = child.getCanonicalFile :: back
+            case true => f(rootDir, rpathChild, child) match {
+              case Some(file) => back = file :: back
+              case None => back
+            }
             case false => back
           }
         }
@@ -69,11 +72,15 @@ class FileSystemHelper(logger : MiniLogger) {
       back
     }
 
-    val b = findFiles(root, "")
+    val b = scanFiles(root, "")
     logger.debug("nb files found under %s : %d with includes[%s] excludes[%s]", root, b.size, includes, excludes)
     b
   }
 
+  def findFiles(root : File, includes : List[String] = Nil, excludes : List[String] = Nil) : List[File] = {
+    scan(root, includes, excludes){(rootDir, rpath, file) => Some(file.getCanonicalFile)}
+  }
+  
   def getExtension(fileName : String) : String = {
     val idx = fileName.lastIndexOf('.')
     var back = fileName.substring(idx + 1)
@@ -105,7 +112,7 @@ class FileSystemHelper(logger : MiniLogger) {
   }
 
   def jar(dest : File, dir : File, paths : Set[String]) {
-	import java.util.jar.{JarOutputStream, JarEntry}
+	 import java.util.jar.{JarOutputStream, JarEntry}
 
     val tmpFileSuffix = ".part-" + java.lang.Long.toHexString(System.nanoTime())
     val tmpfile = new File(dest.getAbsolutePath + tmpFileSuffix)
@@ -157,6 +164,22 @@ class FileSystemHelper(logger : MiniLogger) {
     }
   }
 
+  /**
+   * if includes and excludes is Nil, and you don't care about the result, then use copy(srcDir, destDir) (less operations => better performance)
+   */
+  def copy(srcDir : File, destDir : File, includes : List[String] = Nil, excludes : List[String] = Nil) : List[String] = {
+    scan(srcDir, includes, excludes){(srcDir, rpath, file) =>
+      val dest = new File(destDir, rpath)
+      val p = dest.getParentFile
+      // TODO optimize to avoid check parent directory for every files
+      if (!p.isDirectory && !p.mkdirs()) {
+        throw new IllegalStateException("directory not available/makable :" + p)
+      }
+      copy(file, dest)
+      Some(rpath)
+    }
+  }
+  
   def copy(input : File, output : File) : Long = {
     if (input.equals(output)) return output.length
     if (!input.exists) {
@@ -188,7 +211,7 @@ class FileSystemHelper(logger : MiniLogger) {
 
   def copy(input : FileChannel, output : FileChannel, length : Long ) : Long = {
     var offset = 0L
-    val copyCnt = Math.min(65536, length)
+    val copyCnt = math.min(65536, length)
     while (offset < length) {
       offset += input.transferTo(offset, copyCnt, output)
     }
@@ -237,7 +260,7 @@ class FileSystemHelper(logger : MiniLogger) {
     val bufferSize = 1024 * 4
     val buffer = new Array[Byte]( bufferSize )
     var count = 0
-    var n = input.read(buffer , 0 , Math.min( bufferSize , length ) )
+    var n = input.read(buffer , 0 , math.min( bufferSize , length ) )
     while (n != -1) {
       output.write(buffer , 0 , n )
       count += n
@@ -245,7 +268,7 @@ class FileSystemHelper(logger : MiniLogger) {
         -1
       }
       else {
-        input.read( buffer , 0 , Math.min( length - count , bufferSize ) )
+        input.read( buffer , 0 , math.min( length - count , bufferSize ) )
       }
     }
     count

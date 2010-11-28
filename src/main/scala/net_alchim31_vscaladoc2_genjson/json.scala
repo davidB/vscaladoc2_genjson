@@ -69,6 +69,7 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
 
   private val _encoding = "UTF-8"
   private val _extension = "_.json"
+  private val _dirPrefix = cfg.artifactId + "/" + cfg.version
 
   /*universe.settings.outdir.value*/
   private val _siteRoot: JFile = cfg.apidocdirTmp
@@ -114,12 +115,32 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
   }
   
   private def generateLastStep(rpaths : Set[String]) {
+    val rpathsOfSources = embedSources()
+    val rpathOfArchive = generateArchive(rpathsOfSources ++ rpaths)
+    logger.info("move (overwrite) generated to %s ...", cfg.apidocdir)
+    commit(rpathOfArchive, _dirPrefix, (_dirPrefix + _extension))
+  }
+  
+  private def embedSources() : Set[String]= {
+    cfg.linksources.map( _ == "embed:/").getOrElse(false) match {
+      case false => Set.empty[String]
+      case true => {
+        logger.info("embed sources... ")
+        val srcDestRootRPath = _dirPrefix + "/_src_"
+        val srcDestRoot = new JFile(_siteRoot, srcDestRootRPath)
+        cfg.sources.map { sources =>
+          fs.copy(sources.dir, srcDestRoot, sources.includes, sources.excludes)
+        }.flatten.map(srcDestRootRPath + _).toSet
+      }
+    }
+  }
+  
+  private def generateArchive(rpaths : Set[String]) : String = {
     logger.info("generate archive... ")
     val archiveRPath = cfg.artifactId + "/" + cfg.version + "-apidoc.jar.gz"
     val archive = new JFile(_siteRoot, archiveRPath)
     fs.jar0gz(archive, _siteRoot, rpaths)
-    logger.info("move (overwrite) generated to %s ...", cfg.apidocdir)
-    commit(archiveRPath, (cfg.artifactId + "/" + cfg.version), (cfg.artifactId + "/" + cfg.version + _extension))
+    archiveRPath
   }
 
   /**
@@ -135,6 +156,8 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
       val dest = new JFile(cfg.apidocdir, fname)
       if (dest.exists) {
         fs.deleteRecursively(dest)
+      } else {
+        dest.getParentFile.mkdirs()
       }
       fs.move(new JFile(_siteRoot, fname), dest)
     }
@@ -145,7 +168,7 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
   }
 
   def writeArtifactVersionInfo() : String = {
-    val b = cfg.artifactId + "/" + cfg.version + _extension
+    val b = _dirPrefix + _extension
     val f = new JFile(_siteRoot, b)
     f.getParentFile.mkdirs()
     val jg = _jacksonFactory.createJsonGenerator(f, JsonEncoding.UTF8);
@@ -157,6 +180,7 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
       jg.writeStringField("version", cfg.version)
       jg.writeStringField("kind", cfg.kind.getOrElse(""))
       jg.writeStringField("tags", cfg.tags.getOrElse(""))
+      jg.writeStringField("linksources", cfg.linksources.getOrElse(""))
       jg.writeStringField("description", cfg.description)
       jg.writeStringField("logo", cfg.logo.getOrElse(""))
       jg.writeStringField("license", cfg.license.getOrElse(""))

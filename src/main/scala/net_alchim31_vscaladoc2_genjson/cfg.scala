@@ -55,6 +55,7 @@ class Cfg {
   var license : Option[String] = None
   var additionnalArgs : List[String] = Nil
   var tags : Option[String] = None
+  var linksources : Option[String] = None
   var apidocdir : File = new File(System.getProperty("user.home"), ".config/vscaladoc2/apis")
 
   val timestamp = System.currentTimeMillis
@@ -117,6 +118,7 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
           case "dependencies" => logger.warn("dependencies should be an array of array")
           case "sources" if jp.getCurrentToken == JsonToken.START_ARRAY => b.sources = parseSources(jp)
           case "sources" => logger.warn("sources should be an array of array")
+          case "linksources" => b.linksources = Some(jp.getText)
           case "artifacts" if jp.getCurrentToken == JsonToken.START_ARRAY => b.artifacts = parseArtifacts(jp)
           case "artifacts" => logger.warn("artifacts should be an array of array")
           case "apidocdir" => b.apidocdir = new File(jp.getText).getCanonicalFile
