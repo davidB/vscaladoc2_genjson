@@ -225,10 +225,19 @@ class CfgHelper(logger : MiniLogger, val fs : FileSystemHelper) {
 }
 
 class Source(val dir : File, val fs : FileSystemHelper) {
+  private val canonicalDir =  {
+    val b = dir.getCanonicalPath
+    if (b.endsWith(File.separator)) {
+      b
+    } else {
+      b + File.separator
+    }
+  }
+  
   var includes : List[String] = List("**/*.scala", "**/*.java")
   var excludes : List[String] = Nil
   def files : Seq[File] = fs.findFiles(dir, includes, excludes)
-
+  
   /**
    * search an existing file (ignore includes/excludes)
    */
@@ -236,6 +245,13 @@ class Source(val dir : File, val fs : FileSystemHelper) {
     val f = new File(dir, rpath)
     f.exists match {
       case true => Some(f)
+      case false => None
+    }
+  }
+  
+  def childPath(canonicalPath : String) : Option[String] = {
+    canonicalPath.startsWith(canonicalDir) match {
+      case true => Some(canonicalPath.substring(canonicalDir.length))
       case false => None
     }
   }

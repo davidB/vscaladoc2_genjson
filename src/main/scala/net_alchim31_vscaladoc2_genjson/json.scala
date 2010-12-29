@@ -69,6 +69,7 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
 
   private val _encoding = "UTF-8"
   private val _extension = "_.json"
+  private val _versionFormat = 3  
   private val _dirPrefix = cfg.artifactId + "/" + cfg.version
 
   /*universe.settings.outdir.value*/
@@ -175,15 +176,16 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
     jg.useDefaultPrettyPrinter() // enable indentation just to make debug/testing easier
     try {
       jg.writeStartObject()
+      jg.writeNumberField("v", _versionFormat)
       jg.writeStringField("groupId", cfg.groupId)
       jg.writeStringField("artifactId", cfg.artifactId)
       jg.writeStringField("version", cfg.version)
-      jg.writeStringField("kind", cfg.kind.getOrElse(""))
-      jg.writeStringField("tags", cfg.tags.getOrElse(""))
-      jg.writeStringField("linksources", cfg.linksources.getOrElse(""))
       jg.writeStringField("description", cfg.description)
-      jg.writeStringField("logo", cfg.logo.getOrElse(""))
-      jg.writeStringField("license", cfg.license.getOrElse(""))
+      cfg.kind.foreach{jg.writeStringField("kind", _)}
+      cfg.logo.foreach{jg.writeStringField("logo", _)}
+      cfg.license.foreach{jg.writeStringField("license", _)}
+      cfg.tags.foreach{jg.writeStringField("tags", _)}
+      cfg.linksources.foreach{jg.writeStringField("linksources", _)}
       jg.writeArrayFieldStart("dependencies")
       for (artifact <- cfg.dependencies.map(_.artifact)) {
         jg.writeString(artifact.artifactId + "/" +artifact.version)
@@ -213,7 +215,7 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
     jg.useDefaultPrettyPrinter() // enable indentation just to make debug/testing easier
     try {
       jg.writeStartObject()
-      jg.writeNumberField("v", 2)
+      jg.writeNumberField("v", _versionFormat)
       jg.writeStringField("uoa", rpath)
       jg.writeArrayFieldStart("e")
       for (m <- v) {
@@ -420,15 +422,14 @@ class JsonDocFactory(val logger: MiniLogger, val cfg: Cfg, val uoaHelper: UriOfA
 
   def writeDocTemplateEntityData(v: DocTemplateEntity, jg: JsonGenerator) {
     writeMemberEntityData(v, jg)
+    //FIXME include source even if linksources is not defined ??
     try {
-      v.inSource.foreach { s =>
-        jg.writeArrayFieldStart("sourceStartPoint")
-        jg.writeString(s._1.path)
-        jg.writeNumber(s._2)
-        jg.writeEndArray()
+      for(s <- v.inSource; srcs <- cfg.sources; p <- srcs.childPath(s._1.path)) {
+        //source format : path/relative/to/sourcedirectory#startLine[:startColumn][-endLine[:endColumn]]
+        jg.writeStringField("source", p.replace('\\', '/') + '#' + s._2)
       }
     } catch {
-      case e => logger.warn("failed to extract sourceStartPoint : %s <= %s", v.qualifiedName, e.getClass.getName + " : " + e.getMessage) //ignore
+      case e => logger.warn("failed to extract source start point : %s <= %s", v.qualifiedName, e.getClass.getName + " : " + e.getMessage) //ignore
     }
     writeFieldEntityList("subClassesK", v.subClasses, jg)
     //writeFieldEntityList("members", v.members, jg)

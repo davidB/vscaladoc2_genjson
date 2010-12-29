@@ -119,10 +119,12 @@ class FileSystemHelper(logger : MiniLogger) {
     dest.getParentFile.mkdirs()
     using(new JarOutputStream(new FileOutputStream(tmpfile))){ os =>
       paths.foreach { path =>
-        using(new FileInputStream(new File(dir, path))) {is =>
+        val f = new File(dir, path)
+        using(new FileInputStream(f)) {is =>
           val entry = new JarEntry(path)
           os.putNextEntry(entry)
           copy(is, os)
+          entry.setTime(f.lastModified) //TODO set date in UT
         }
       }
     }
