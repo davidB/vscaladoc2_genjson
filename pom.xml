@@ -9,7 +9,7 @@
 
   <groupId>net.alchim31.vscaladoc2</groupId>
   <artifactId>vscaladoc2_genjson</artifactId>
-  <version>0.3</version>
+  <version>0.4-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>VScaladoc2 Json Generator</name>
